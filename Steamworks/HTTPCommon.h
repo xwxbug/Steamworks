@@ -25,9 +25,12 @@
 #define STEAMHTTP_INTERFACE_VERSION_001 "STEAMHTTP_INTERFACE_VERSION001"
 #define STEAMHTTP_INTERFACE_VERSION_002 "STEAMHTTP_INTERFACE_VERSION002"
 
-
+// Handle to a HTTP Request handle
 typedef uint32 HTTPRequestHandle;
 #define INVALID_HTTPREQUEST_HANDLE		0
+
+typedef uint32 HTTPCookieContainerHandle;
+#define INVALID_HTTPCOOKIE_HANDLE		0
 
 
 // This enum is used in client API methods, do not re-number existing values.
@@ -81,7 +84,7 @@ typedef enum EHTTPStatusCode
 
 	// Error codes
 	k_EHTTPStatusCode400BadRequest =			400,
-	k_EHTTPStatusCode401Unauthorized =			401,
+	k_EHTTPStatusCode401Unauthorized =			401, // You probably want 403 or something else. 401 implies you're sending a WWW-Authenticate header and the client can sent an Authorization header in response.
 	k_EHTTPStatusCode402PaymentRequired =		402, // This is reserved for future HTTP specs, not really supported by clients
 	k_EHTTPStatusCode403Forbidden =				403,
 	k_EHTTPStatusCode404NotFound =				404,
@@ -98,6 +101,8 @@ typedef enum EHTTPStatusCode
 	k_EHTTPStatusCode415UnsupportedMediaType =	415,
 	k_EHTTPStatusCode416RequestedRangeNotSatisfiable = 416,
 	k_EHTTPStatusCode417ExpectationFailed =		417,
+	k_EHTTPStatusCode4xxUnknown = 				418, // 418 is reserved, so we'll use it to mean unknown
+	k_EHTTPStatusCode429TooManyRequests	=		429,
 
 	// Server error codes
 	k_EHTTPStatusCode500InternalServerError =	500,
@@ -106,6 +111,7 @@ typedef enum EHTTPStatusCode
 	k_EHTTPStatusCode503ServiceUnavailable =	503,
 	k_EHTTPStatusCode504GatewayTimeout =		504,
 	k_EHTTPStatusCode505HTTPVersionNotSupported = 505,
+	k_EHTTPStatusCode5xxUnknown =				599,
 } EHTTPStatusCode;
 
 
@@ -127,6 +133,40 @@ struct HTTPRequestCompleted_t
 	// Will be the HTTP status code value returned by the server, k_EHTTPStatusCode200OK is the normal
 	// OK response, if you get something else you probably need to treat it as a failure.
 	EHTTPStatusCode m_eStatusCode;
+
+	uint32 m_unBodySize; // Same as GetHTTPResponseBodySize()
+};
+
+
+struct HTTPRequestHeadersReceived_t
+{
+	enum { k_iCallback = k_iClientHTTPCallbacks + 2 };
+
+	// Handle value for the request that has received headers.
+	HTTPRequestHandle m_hRequest;
+
+	// Context value that the user defined on the request that this callback is associated with, 0 if
+	// no context value was set.
+	uint64 m_ulContextValue;
+};
+
+struct HTTPRequestDataReceived_t
+{
+	enum { k_iCallback = k_iClientHTTPCallbacks + 3 };
+
+	// Handle value for the request that has received data.
+	HTTPRequestHandle m_hRequest;
+
+	// Context value that the user defined on the request that this callback is associated with, 0 if
+	// no context value was set.
+	uint64 m_ulContextValue;
+
+
+	// Offset to provide to GetHTTPStreamingResponseBodyData to get this chunk of data
+	uint32 m_cOffset;
+
+	// Size to provide to GetHTTPStreamingResponseBodyData to get this chunk of data
+	uint32 m_cBytesReceived;
 };
 
 

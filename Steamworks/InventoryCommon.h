@@ -20,8 +20,18 @@
 #pragma once
 #endif
 
+#define STEAMINVENTORY_INTERFACE_VERSION_001 "STEAMINVENTORY_INTERFACE_V001"
 
-#define STEAINVENTORY_INTERFACE_VERSION_001 "STEAMINVENTORY_INTERFACE_VERSION001"
+
+// callbacks
+#if defined( VALVE_CALLBACK_PACK_SMALL )
+#pragma pack( push, 4 )
+#elif defined( VALVE_CALLBACK_PACK_LARGE )
+#pragma pack( push, 8 )
+#else
+#error isteamclient.h must be included
+#endif
+
 
 // Every individual instance of an item has a globally-unique ItemInstanceID.
 // This ID is unique to the combination of (player, specific item instance)
@@ -39,7 +49,7 @@ typedef int32 SteamItemDef_t;
 
 enum ESteamItemFlags
 {
-	// Item status flags - these flags are permenantly attached to specific item instances
+	// Item status flags - these flags are permanently attached to specific item instances
 	k_ESteamItemNoTrade = 1 << 0, // This item is account-locked and cannot be traded or given away.
 
 	// Action confirmation flags - these flags are set one time only, as part of a result set
@@ -61,6 +71,9 @@ struct SteamItemDetails_t
 typedef int32 SteamInventoryResult_t;
 
 static const SteamInventoryResult_t k_SteamInventoryResultInvalid = -1;
+
+
+
 
 // SteamInventoryResultReady_t callbacks are fired whenever asynchronous
 // results transition from "Pending" to "OK" or an error state. There will
@@ -96,4 +109,7 @@ struct SteamInventoryDefinitionUpdate_t
 	enum { k_iCallback = k_iClientInventoryCallbacks + 2 };
 };
 
-#endif // UGCCOMMON_H
+#pragma pack( pop )
+
+
+#endif // INVENTORYCOMMON_H
