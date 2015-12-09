@@ -245,6 +245,59 @@ typedef signed char int8;
 	#define STEAMWORKS_STRUCT_RETURN_3(returnType, functionName, arg1Type, arg1Name, arg2Type, arg2Name, arg3Type, arg3Name) virtual returnType functionName( arg1Type arg1Name, arg2Type arg2Name, arg3Type arg3Name ) = 0;
 #endif
 
+
+
+#if defined(__linux__) || defined(__APPLE__) 
+// The 32-bit version of gcc has the alignment requirement for uint64 and double set to
+// 4 meaning that even with #pragma pack(8) these types will only be four-byte aligned.
+// The 64-bit version of gcc has the alignment requirement for these types set to
+// 8 meaning that unless we use #pragma pack(4) our structures will get bigger.
+// The 64-bit structure packing has to match the 32-bit structure packing for each platform.
+#define VALVE_CALLBACK_PACK_SMALL
+#else
+#define VALVE_CALLBACK_PACK_LARGE
+#endif
+
+#if defined( VALVE_CALLBACK_PACK_SMALL )
+#pragma pack( push, 4 )
+#elif defined( VALVE_CALLBACK_PACK_LARGE )
+#pragma pack( push, 8 )
+#else
+#error ???
+#endif 
+
+typedef struct
+{
+    uint32 m_u32;
+    uint64 m_u64;
+    uint16 m_u16;
+    double m_d;
+} ValvePackingSentinel_t;
+
+#pragma pack( pop )
+
+
+
+#ifdef __clang__
+# define CLANG_ATTR(ATTR) __attribute__((annotate( ATTR )))
+#else
+# define CLANG_ATTR(ATTR)
+#endif
+
+#define METHOD_DESC(DESC) CLANG_ATTR( "desc:" #DESC ";" )
+#define IGNOREATTR() CLANG_ATTR( "ignore" )
+#define OUT_STRUCT() CLANG_ATTR( "out_struct: ;" )
+#define OUT_ARRAY_CALL(COUNTER,FUNCTION,PARAMS) CLANG_ATTR( "out_array_call:" #COUNTER "," #FUNCTION "," #PARAMS ";" )
+#define OUT_ARRAY_COUNT(COUNTER, DESC) CLANG_ATTR( "out_array_count:" #COUNTER  ";desc:" #DESC )
+#define ARRAY_COUNT(COUNTER) CLANG_ATTR( "array_count:" #COUNTER ";" )
+#define ARRAY_COUNT_D(COUNTER, DESC) CLANG_ATTR( "array_count:" #COUNTER ";desc:" #DESC )
+#define BUFFER_COUNT(COUNTER) CLANG_ATTR( "buffer_count:" #COUNTER ";" )
+#define OUT_BUFFER_COUNT(COUNTER) CLANG_ATTR( "out_buffer_count:" #COUNTER ";" )
+#define OUT_STRING_COUNT(COUNTER) CLANG_ATTR( "out_string_count:" #COUNTER ";" )
+#define DESC(DESC) CLANG_ATTR("desc:" #DESC ";")
+
+
+
 // steamclient/api
 
 #include "EResult.h"
@@ -684,7 +737,7 @@ enum ECallbackType
 	k_iSteamUserStatsCallbacks = 1100,
 	k_iSteamNetworkingCallbacks = 1200,
 	k_iClientRemoteStorageCallbacks = 1300,
-	k_iSteamUserItemsCallbacks = 1400,
+	k_iClientDepotBuilderCallbacks = 1400,
 	k_iSteamGameServerItemsCallbacks = 1500,
 	k_iClientUtilsCallbacks = 1600,
 	k_iSteamGameCoordinatorCallbacks = 1700,
@@ -695,8 +748,8 @@ enum ECallbackType
 	k_iClientScreenshotsCallbacks = 2200,
 	k_iSteamScreenshotsCallbacks = 2300,
 	k_iClientAudioCallbacks = 2400,
-	k_iSteamUnifiedMessagesCallbacks = 2500,
-	k_iClientUnifiedMessagesCallbacks = 2600,
+	k_iClientUnifiedMessagesCallbacks = 2500,
+	k_iSteamStreamLauncherCallbacks = 2600,
 	k_iClientControllerCallbacks = 2700,
 	k_iSteamControllerCallbacks = 2800,
 	k_iClientParentalSettingsCallbacks = 2900,
@@ -706,7 +759,7 @@ enum ECallbackType
 	k_iClientRemoteClientManagerCallbacks = 3300,
 	k_iClientUGCCallbacks = 3400,
 	k_iSteamStreamClientCallbacks = 3500,
-	k_IClientProductBuilderCallbacks = 3600,
+	k_IClientProductBuilderCallbacks = 3600	,
 	k_iClientShortcutsCallbacks = 3700,
 	k_iClientRemoteControlManagerCallbacks = 3800,
 	k_iSteamAppListCallbacks = 3900,
@@ -770,7 +823,218 @@ struct CallbackMsg_t
 	int m_cubParam;
 };
 
+//-----------------------------------------------------------------------------
+// The CALLBACK macros are for client side callback logging enabled with
+// log_callback <first callnbackID> <last callbackID>
+// Do not change any of these. 
+//-----------------------------------------------------------------------------
+
+struct SteamCallback_t
+{
+public:
+	SteamCallback_t() {}
+};
+
+#define DEFINE_CALLBACK( callbackname, callbackid ) \
+struct callbackname : SteamCallback_t { \
+	enum { k_iCallback = callbackid }; \
+	static callbackname *GetNullPointer() { return 0; } \
+	static const char *GetCallbackName() { return #callbackname; } \
+	static uint32  GetCallbackID() { return callbackname::k_iCallback; }
+
+#define CALLBACK_MEMBER( varidx, vartype, varname ) \
+	public: vartype varname ; \
+	static void GetMemberVar_##varidx( unsigned int &varOffset, unsigned int &varSize, uint32 &varCount, const char **pszName, const char **pszType ) { \
+			varOffset = (unsigned int)(size_t)&GetNullPointer()->varname; \
+			varSize = sizeof( vartype ); \
+			varCount = 1; \
+			*pszName = #varname; *pszType = #vartype; }
+
+#define CALLBACK_ARRAY( varidx, vartype, varname, varcount ) \
+	public: vartype varname [ varcount ]; \
+	static void GetMemberVar_##varidx( unsigned int &varOffset, unsigned int &varSize, uint32 &varCount, const char **pszName, const char **pszType ) { \
+	varOffset = (unsigned int)(size_t)&GetNullPointer()->varname[0]; \
+	varSize = sizeof( vartype ); \
+	varCount = varcount; \
+	*pszName = #varname; *pszType = #vartype; }
 
 
+#define END_CALLBACK_INTERNAL_BEGIN( numvars )  \
+	static uint32  GetNumMemberVariables() { return numvars; } \
+	static bool    GetMemberVariable( uint32 index, uint32 &varOffset, uint32 &varSize,  uint32 &varCount, const char **pszName, const char **pszType ) { \
+	switch ( index ) { default : return false;
+
+
+#define END_CALLBACK_INTERNAL_SWITCH( varidx ) case varidx : GetMemberVar_##varidx( varOffset, varSize, varCount, pszName, pszType ); return true;
+
+#define END_CALLBACK_INTERNAL_END() }; } };
+
+#define END_DEFINE_CALLBACK_0() \
+	static uint32  GetNumMemberVariables() { return 0; } \
+	static bool    GetMemberVariable( uint32 index, uint32 &varOffset, uint32 &varSize,  uint32 &varCount, const char **pszName, const char **pszType ) { REFERENCE( pszType ); REFERENCE( pszName ); REFERENCE( varCount ); REFERENCE( varSize ); REFERENCE( varOffset ); REFERENCE( index ); return false; } \
+	};
+	
+
+#define END_DEFINE_CALLBACK_1() \
+	END_CALLBACK_INTERNAL_BEGIN( 1 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 0 ) \
+	END_CALLBACK_INTERNAL_END()
+
+#define END_DEFINE_CALLBACK_2() \
+	END_CALLBACK_INTERNAL_BEGIN( 2 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 0 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 1 ) \
+	END_CALLBACK_INTERNAL_END()
+
+#define END_DEFINE_CALLBACK_3() \
+	END_CALLBACK_INTERNAL_BEGIN( 3 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 0 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 1 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 2 ) \
+	END_CALLBACK_INTERNAL_END()
+
+#define END_DEFINE_CALLBACK_4() \
+	END_CALLBACK_INTERNAL_BEGIN( 4 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 0 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 1 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 2 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 3 ) \
+	END_CALLBACK_INTERNAL_END()
+
+#define END_DEFINE_CALLBACK_5() \
+	END_CALLBACK_INTERNAL_BEGIN( 4 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 0 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 1 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 2 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 3 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 4 ) \
+	END_CALLBACK_INTERNAL_END()
+
+
+#define END_DEFINE_CALLBACK_6() \
+	END_CALLBACK_INTERNAL_BEGIN( 6 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 0 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 1 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 2 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 3 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 4 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 5 ) \
+	END_CALLBACK_INTERNAL_END()
+
+#define END_DEFINE_CALLBACK_7() \
+	END_CALLBACK_INTERNAL_BEGIN( 7 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 0 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 1 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 2 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 3 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 4 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 5 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 6 ) \
+	END_CALLBACK_INTERNAL_END()
+
+#define END_DEFINE_CALLBACK_8() \
+	END_CALLBACK_INTERNAL_BEGIN( 8 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 0 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 1 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 2 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 3 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 4 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 5 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 6 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 7 ) \
+	END_CALLBACK_INTERNAL_END()
+
+#define END_DEFINE_CALLBACK_9() \
+	END_CALLBACK_INTERNAL_BEGIN( 9 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 0 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 1 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 2 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 3 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 4 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 5 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 6 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 7 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 8 ) \
+	END_CALLBACK_INTERNAL_END()
+
+#define END_DEFINE_CALLBACK_10() \
+	END_CALLBACK_INTERNAL_BEGIN( 10 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 0 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 1 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 2 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 3 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 4 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 5 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 6 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 7 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 8 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 9 ) \
+	END_CALLBACK_INTERNAL_END()
+
+#define END_DEFINE_CALLBACK_11() \
+	END_CALLBACK_INTERNAL_BEGIN( 11 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 0 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 1 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 2 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 3 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 4 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 5 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 6 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 7 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 8 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 9 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 10 ) \
+	END_CALLBACK_INTERNAL_END()
+
+#define END_DEFINE_CALLBACK_12() \
+	END_CALLBACK_INTERNAL_BEGIN( 12 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 0 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 1 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 2 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 3 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 4 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 5 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 6 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 7 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 8 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 9 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 10 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 11 ) \
+	END_CALLBACK_INTERNAL_END()
+
+#define END_DEFINE_CALLBACK_13() \
+	END_CALLBACK_INTERNAL_BEGIN( 13 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 0 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 1 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 2 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 3 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 4 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 5 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 6 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 7 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 8 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 9 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 10 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 11 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 12 ) \
+	END_CALLBACK_INTERNAL_END()
+
+#define END_DEFINE_CALLBACK_14() \
+	END_CALLBACK_INTERNAL_BEGIN( 14 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 0 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 1 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 2 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 3 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 4 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 5 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 6 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 7 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 8 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 9 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 10 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 11 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 12 ) \
+	END_CALLBACK_INTERNAL_SWITCH( 13 ) \
+	END_CALLBACK_INTERNAL_END()
 #endif // STEAMTYPES_H
 

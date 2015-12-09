@@ -55,17 +55,6 @@ typedef enum EConfigStore
 	k_EConfigStoreMax = 4,
 } EConfigStore;
 
-//-----------------------------------------------------------------------------
-// results for CheckFileSignature
-//-----------------------------------------------------------------------------
-enum ECheckFileSignature
-{
-	k_ECheckFileSignatureInvalidSignature = 0,
-	k_ECheckFileSignatureValidSignature = 1,
-	k_ECheckFileSignatureFileNotFound = 2,
-	k_ECheckFileSignatureNoSignaturesFoundForThisApp = 3,
-	k_ECheckFileSignatureNoSignaturesFoundForThisFile = 4,
-};
 
 enum ESpewGroup
 {
@@ -111,14 +100,19 @@ enum EUIMode
 	k_EUIModeTenFoot = 1,
 };
 
+// Input modes for the Big Picture gamepad text entry
 enum EGamepadTextInputMode
 {
-	// TODO: Reverse this enum
+	k_EGamepadTextInputModeNormal = 0,
+	k_EGamepadTextInputModePassword = 1
 };
 
+
+// Controls number of allowed lines for the Big Picture gamepad text entry
 enum EGamepadTextInputLineMode
 {
-	// TODO: Reverse this enum
+	k_EGamepadTextInputLineModeSingleLine = 0,
+	k_EGamepadTextInputLineModeMultipleLines = 1
 };
 
 enum EWindowType
@@ -161,12 +155,25 @@ struct SteamAPICallCompleted_t
 	SteamAPICall_t m_hAsyncCall;
 };
 
+
 //-----------------------------------------------------------------------------
 // called when Steam wants to shutdown
 //-----------------------------------------------------------------------------
 struct SteamShutdown_t
 {
 	enum { k_iCallback = k_iSteamUtilsCallbacks + 4 };
+};
+
+//-----------------------------------------------------------------------------
+// results for CheckFileSignature
+//-----------------------------------------------------------------------------
+enum ECheckFileSignature
+{
+	k_ECheckFileSignatureInvalidSignature = 0,
+	k_ECheckFileSignatureValidSignature = 1,
+	k_ECheckFileSignatureFileNotFound = 2,
+	k_ECheckFileSignatureNoSignaturesFoundForThisApp = 3,
+	k_ECheckFileSignatureNoSignaturesFoundForThisFile = 4,
 };
 
 //-----------------------------------------------------------------------------
@@ -179,6 +186,49 @@ struct CheckFileSignature_t
 	ECheckFileSignature m_eCheckFileSignature;
 };
 
+#ifdef _PS3
+//-----------------------------------------------------------------------------
+// callback for NetCtlNetStartDialog finishing on PS3
+//-----------------------------------------------------------------------------
+struct NetStartDialogFinished_t
+{
+	enum { k_iCallback = k_iSteamUtilsCallbacks + 6 };
+};
+
+//-----------------------------------------------------------------------------
+// callback for NetCtlNetStartDialog unloaded on PS3
+//-----------------------------------------------------------------------------
+struct NetStartDialogUnloaded_t
+{
+	enum { k_iCallback = k_iSteamUtilsCallbacks + 7 };
+};
+
+//-----------------------------------------------------------------------------
+// callback for system menu closing on PS3 - should trigger resyncronizing friends list, etc.
+//-----------------------------------------------------------------------------
+struct PS3SystemMenuClosed_t
+{
+	enum { k_iCallback = k_iSteamUtilsCallbacks + 8 };
+};
+
+//-----------------------------------------------------------------------------
+// callback for NP message being selected by user on PS3 - should trigger handling of message if it's a lobby invite, etc.
+//-----------------------------------------------------------------------------
+struct PS3NPMessageSelected_t
+{
+	enum { k_iCallback = k_iSteamUtilsCallbacks + 9 };
+	uint32 dataid;
+};
+
+//-----------------------------------------------------------------------------
+// callback for when the PS3 keyboard dialog closes
+//-----------------------------------------------------------------------------
+struct PS3KeyboardDialogFinished_t
+{
+	enum { k_iCallback = k_iSteamUtilsCallbacks + 10 };
+};
+
+// k_iSteamUtilsCallbacks + 11 is taken
 struct SteamConfigStoreChanged_t
 {
 	enum { k_iCallback = k_iSteamUtilsCallbacks + 11 };
@@ -187,12 +237,34 @@ struct SteamConfigStoreChanged_t
 	char m_szRootOfChanges[ 255 ];
 };
 
+//-----------------------------------------------------------------------------
+// callback for PSN status changing on PS3
+//-----------------------------------------------------------------------------
+struct PS3PSNStatusChange_t
+{
+	enum { k_iCallback = k_iSteamUtilsCallbacks + 12 };
+	bool m_bPSNOnline;
+};
+
+#endif
+
+// k_iSteamUtilsCallbacks + 13 is taken
+
+
+//-----------------------------------------------------------------------------
+// Big Picture gamepad text input has been closed
+//-----------------------------------------------------------------------------
+struct GamepadTextInputDismissed_t
+{
+	enum { k_iCallback = k_iSteamUtilsCallbacks + 14 };
+	bool m_bSubmitted;										// true if user entered & accepted text (Call ISteamUtils::GetEnteredGamepadTextInput() for text), false if canceled input
+	uint32 m_unSubmittedText;
+};
+
+// k_iSteamUtilsCallbacks + 15 is taken
 
 
 // k_iClientUtilsCallbacks
-
-
-
 struct CellIDChanged_t
 {
 	enum { k_iCallback = k_iClientUtilsCallbacks + 3 };

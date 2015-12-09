@@ -60,6 +60,7 @@ enum ECallState
 	k_ECallStateInCall = 4,
 };
 
+
 //-----------------------------------------------------------------------------
 // Purpose: Chat Entry Types (previously was only friend-to-friend message types)
 //-----------------------------------------------------------------------------
@@ -69,10 +70,18 @@ enum EChatEntryType
 	k_EChatEntryTypeChatMsg = 1,		// Normal text message from another user
 	k_EChatEntryTypeTyping = 2,			// Another user is typing (not used in multi-user chat)
 	k_EChatEntryTypeInviteGame = 3,		// Invite from other user into that users current game
-	k_EChatEntryTypeEmote = 4,			// text emote message
-	k_EChatEntryTypeLobbyGameStart = 5,	// lobby game is starting
+	k_EChatEntryTypeEmote = 4,			// text emote message (deprecated, should be treated as ChatMsg)
+	k_EChatEntryTypeLobbyGameStart = 5,	// lobby game is starting (dead - listen for LobbyGameCreated_t callback instead)
 	k_EChatEntryTypeLeftConversation = 6, // user has left the conversation ( closed chat window )
 	// Above are previous FriendMsgType entries, now merged into more generic chat entry types
+	k_EChatEntryTypeEntered = 7,		// user has entered the conversation (used in multi-user chat and group chat)
+	k_EChatEntryTypeWasKicked = 8,		// user was kicked (data: 64-bit steamid of actor performing the kick)
+	k_EChatEntryTypeWasBanned = 9,		// user was banned (data: 64-bit steamid of actor performing the ban)
+	k_EChatEntryTypeDisconnected = 10,	// user disconnected
+	k_EChatEntryTypeHistoricalChat = 11,	// a chat message from user's chat history or offilne message
+	k_EChatEntryTypeReserved1 = 12,
+	k_EChatEntryTypeReserved2 = 13,
+	k_EChatEntryTypeLinkBlocked = 14, // a link was removed by the chat filter.
 };
 
 //-----------------------------------------------------------------------------
@@ -81,11 +90,11 @@ enum EChatEntryType
 enum EFriendRelationship
 {
 	k_EFriendRelationshipNone = 0,
-	k_EFriendRelationshipBlocked = 1,
+	k_EFriendRelationshipBlocked = 1,			// this doesn't get stored; the user has just done an Ignore on an friendship invite
 	k_EFriendRelationshipRequestRecipient = 2,
 	k_EFriendRelationshipFriend = 3,
 	k_EFriendRelationshipRequestInitiator = 4,
-	k_EFriendRelationshipIgnored = 5,
+	k_EFriendRelationshipIgnored = 5,			// this is stored; the user has explicit blocked this other user from comments/chat/etc
 	k_EFriendRelationshipIgnoredFriend = 6,
 	k_EFriendRelationshipSuggested = 7,
 
@@ -232,9 +241,9 @@ enum EChatRoomEnterResponse
 	k_EChatRoomEnterResponseCommunityBan = 9,			// Attempt to join a chat when the user has a community lock on their account
 	k_EChatRoomEnterResponseMemberBlockedYou = 10,		// Join failed - some member in the chat has blocked you from joining
 	k_EChatRoomEnterResponseYouBlockedMember = 11,		// Join failed - you have blocked some member already in the chat
-	k_EChatRoomEnterResponseNoRankingDataLobby = 12,	// There is no ranking data available for the lobby 
-	k_EChatRoomEnterResponseNoRankingDataUser = 13,		// There is no ranking data available for the user
-	k_EChatRoomEnterResponseRankOutOfRange = 14,		// The user is out of the allowable ranking range
+	k_EChatRoomEnterResponseNoRankingDataLobby = 12,	// There is no ranking data available for the lobby // No longer used
+	k_EChatRoomEnterResponseNoRankingDataUser = 13,		// There is no ranking data available for the user// No longer used
+	k_EChatRoomEnterResponseRankOutOfRange = 14,		// The user is out of the allowable ranking range// No longer used
 };
 
 enum EChatAction
@@ -555,15 +564,15 @@ struct FriendsEnumerateFollowingList_t
 
 //-----------------------------------------------------------------------------
 // Purpose: a SetPersonaName / SetPersonaNameEx call has finished
+// Purpose: reports the result of an attempt to change the user's persona name
 //-----------------------------------------------------------------------------
 struct SetPersonaNameResponse_t
 {
 	enum { k_iCallback = k_iSteamFriendsCallbacks + 47 };
 
-	bool m_bUnk1;
-	bool m_bUnk2;
-	
-	EResult m_eResult;
+	bool m_bSuccess; // true if name change succeeded completely.
+	bool m_bLocalSuccess; // true if name change was retained locally.  (We might not have been able to communicate with Steam)
+	EResult m_result; // detailed result code
 };
 
 

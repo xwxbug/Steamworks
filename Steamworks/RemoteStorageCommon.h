@@ -34,7 +34,7 @@
 #define STEAMREMOTESTORAGE_INTERFACE_VERSION_010 "STEAMREMOTESTORAGE_INTERFACE_VERSION010"
 #define STEAMREMOTESTORAGE_INTERFACE_VERSION_011 "STEAMREMOTESTORAGE_INTERFACE_VERSION011"
 #define STEAMREMOTESTORAGE_INTERFACE_VERSION_012 "STEAMREMOTESTORAGE_INTERFACE_VERSION012"
-
+#define STEAMREMOTESTORAGE_INTERFACE_VERSION_013 "STEAMREMOTESTORAGE_INTERFACE_VERSION013"
 #define CLIENTREMOTESTORAGE_INTERFACE_VERSION "CLIENTREMOTESTORAGE_INTERFACE_VERSION001"
 
 
@@ -47,7 +47,7 @@ const PublishedFileUpdateHandle_t k_PublishedFileUpdateHandleInvalid = 0xfffffff
 
 const uint32 k_cchPublishedDocumentTitleMax = 128 + 1;
 const uint32 k_cchPublishedDocumentDescriptionMax = 8000;
-const uint32 k_cchPublishedDocumentChangeDescriptionMax = 256;
+const uint32 k_cchPublishedDocumentChangeDescriptionMax = 8000;
 const uint32 k_unEnumeratePublishedFilesMaxResults = 50;
 const uint32 k_cchTagListMax = 1024 + 1;
 const uint32 k_cchFilenameMax = 260;
@@ -140,24 +140,25 @@ enum EWorkshopFileType
 {
 	k_EWorkshopFileTypeFirst = 0,
 
-	k_EWorkshopFileTypeCommunity			  = 0,
-	k_EWorkshopFileTypeMicrotransaction		  = 1,
-	k_EWorkshopFileTypeCollection			  = 2,
-	k_EWorkshopFileTypeArt					  = 3,
-	k_EWorkshopFileTypeVideo				  = 4,
-	k_EWorkshopFileTypeScreenshot			  = 5,
-	k_EWorkshopFileTypeGame					  = 6,
-	k_EWorkshopFileTypeSoftware				  = 7,
-	k_EWorkshopFileTypeConcept				  = 8,
-	k_EWorkshopFileTypeWebGuide				  = 9,
-	k_EWorkshopFileTypeIntegratedGuide		  = 10,
-	k_EWorkshopFileTypeMerch				  = 11,
-	k_EWorkshopFileTypeControllerBinding	  = 12,
-	k_EWorkshopFileTypeSteamworksAccessInvite = 13,
-	k_EWorkshopFileTypeSteamVideo			  = 14,
+	k_EWorkshopFileTypeCommunity			  = 0,		// normal Workshop item that can be subscribed to
+	k_EWorkshopFileTypeMicrotransaction		  = 1,		// Workshop item that is meant to be voted on for the purpose of selling in-game
+	k_EWorkshopFileTypeCollection			  = 2,		// a collection of Workshop or Greenlight items
+	k_EWorkshopFileTypeArt					  = 3,		// artwork
+	k_EWorkshopFileTypeVideo				  = 4,		// external video
+	k_EWorkshopFileTypeScreenshot			  = 5,		// screenshot
+	k_EWorkshopFileTypeGame					  = 6,		// Greenlight game entry
+	k_EWorkshopFileTypeSoftware				  = 7,		// Greenlight software entry
+	k_EWorkshopFileTypeConcept				  = 8,		// Greenlight concept
+	k_EWorkshopFileTypeWebGuide				  = 9,		// Steam web guide
+	k_EWorkshopFileTypeIntegratedGuide		  = 10,		// application integrated guide
+	k_EWorkshopFileTypeMerch				  = 11,		// Workshop merchandise meant to be voted on for the purpose of being sold
+	k_EWorkshopFileTypeControllerBinding	  = 12,		// Steam Controller bindings
+	k_EWorkshopFileTypeSteamworksAccessInvite = 13,		// internal
+	k_EWorkshopFileTypeSteamVideo			  = 14,		// Steam video
+	k_EWorkshopFileTypeGameManagedItem		  = 15,		// managed completely by the game, not the user, and not shown on the web
 
 	// Update k_EWorkshopFileTypeMax if you add values.
-	k_EWorkshopFileTypeMax = 15
+	k_EWorkshopFileTypeMax = 16
 	
 };
 
@@ -166,11 +167,7 @@ enum EWorkshopVote
 	k_EWorkshopVoteUnvoted = 0,
 	k_EWorkshopVoteFor = 1,
 	k_EWorkshopVoteAgainst = 2,
-};
-
-enum EWorkshopVideoProvider
-{
-	// TODO: Reverse this enum
+	k_EWorkshopVoteLater = 3,
 };
 
 enum EWorkshopFileAction
@@ -178,7 +175,6 @@ enum EWorkshopFileAction
 	k_EWorkshopFileActionPlayed = 0,
 	k_EWorkshopFileActionCompleted = 1,
 };
-
 
 enum EWorkshopEnumerationType
 {
@@ -190,6 +186,13 @@ enum EWorkshopEnumerationType
 	k_EWorkshopEnumerationTypeContentByFriends = 5,
 	k_EWorkshopEnumerationTypeRecentFromFollowedUsers = 6,
 };
+
+enum EWorkshopVideoProvider
+{
+	k_EWorkshopVideoProviderNone = 0,
+	k_EWorkshopVideoProviderYoutube = 1
+};
+
 
 enum EPublishedFileInfoMatchingFileType
 {
@@ -209,9 +212,8 @@ enum EUGCReadAction
 
 	// Frees the file handle.  Use this when you're done reading the content.  
 	// To read the file from Steam again you will need to call UGCDownload again. 
-	k_EUGCRead_Close = 2,
+	k_EUGCRead_Close = 2,	
 };
-
 
 #pragma pack( push, 8 )
 
@@ -505,6 +507,7 @@ struct RemoteStorageSubscribePublishedFileResult_t
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 13 };
 
 	EResult m_eResult;				// The result of the operation.
+	PublishedFileId_t m_nPublishedFileId;
 };
 
 //-----------------------------------------------------------------------------
@@ -529,6 +532,7 @@ struct RemoteStorageUnsubscribePublishedFileResult_t
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 15 };
 
 	EResult m_eResult;				// The result of the operation.
+	PublishedFileId_t m_nPublishedFileId;
 };
 
 //-----------------------------------------------------------------------------
@@ -563,25 +567,27 @@ struct RemoteStorageDownloadUGCResult_t
 struct RemoteStorageGetPublishedFileDetailsResult_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 18 };
-
-	EResult m_eResult;						// The result of the operation.
+	EResult m_eResult;				// The result of the operation.
 	PublishedFileId_t m_nPublishedFileId;
-	AppId_t m_nCreatorAppID;				// ID of the app that created this file.
-	AppId_t m_nConsumerAppID;				// ID of the app that created this file.
-	char m_rgchTitle[ k_cchPublishedDocumentTitleMax ]; // title of document
-	char m_rgchDescription[ k_cchPublishedDocumentDescriptionMax ]; // description of document
-	UGCHandle_t m_hFile;					// The handle of the primary file
-	UGCHandle_t m_hPreviewFile;				// The handle of the preview file
-	uint64 m_ulSteamIDOwner;				// Steam ID of the user who created this content.
-	uint32 m_rtimeCreated;					// time when the published file was created
-	uint32 m_rtimeUpdated;					// time when the published file was last updated
+	AppId_t m_nCreatorAppID;		// ID of the app that created this file.
+	AppId_t m_nConsumerAppID;		// ID of the app that will consume this file.
+	char m_rgchTitle[k_cchPublishedDocumentTitleMax];		// title of document
+	char m_rgchDescription[k_cchPublishedDocumentDescriptionMax];	// description of document
+	UGCHandle_t m_hFile;			// The handle of the primary file
+	UGCHandle_t m_hPreviewFile;		// The handle of the preview file
+	uint64 m_ulSteamIDOwner;		// Steam ID of the user who created this content.
+	uint32 m_rtimeCreated;			// time when the published file was created
+	uint32 m_rtimeUpdated;			// time when the published file was last updated
 	ERemoteStoragePublishedFileVisibility m_eVisibility;
 	bool m_bBanned;
-	char m_rgchTags[ k_cchTagListMax ];		// comma separated list of all tags associated with this file
-	bool m_bTagsTruncated;					// whether the list of tags was too long to be returned in the provided buffer
-	char m_pchFileName[ k_cchFilenameMax ];	// The name of the primary file
-	int32 m_nFileSize;						// File size of the primary file
-	int32 m_nPreviewFileSize;				// File size of the preview file
+	char m_rgchTags[k_cchTagListMax];	// comma separated list of all tags associated with this file
+	bool m_bTagsTruncated;			// whether the list of tags was too long to be returned in the provided buffer
+	char m_pchFileName[k_cchFilenameMax];		// The name of the primary file
+	int32 m_nFileSize;				// Size of the primary file
+	int32 m_nPreviewFileSize;		// Size of the preview file
+	char m_rgchURL[k_cchPublishedFileURLMax];	// URL (for a video or a website)
+	EWorkshopFileType m_eFileType;	// Type of the file
+	bool m_bAcceptedForUse;			// developer has specifically flagged this item as accepted in the Workshop
 };
 
 //-----------------------------------------------------------------------------
@@ -595,7 +601,9 @@ struct RemoteStorageEnumerateWorkshopFilesResult_t
 	int32 m_nResultsReturned;
 	int32 m_nTotalResultCount;
 	PublishedFileId_t m_rgPublishedFileId[ k_unEnumeratePublishedFilesMaxResults ];
-	float m_rgScore[ k_unEnumeratePublishedFilesMaxResults ]; // [0-1.0]
+	float m_rgScore[ k_unEnumeratePublishedFilesMaxResults ];
+	AppId_t m_nAppId;
+	uint32 m_unStartIndex;
 };
 
 //-----------------------------------------------------------------------------
@@ -613,29 +621,38 @@ struct RemoteStorageGetPublishedItemVoteDetailsResult_t
 	float m_fScore; // [0-1.0]
 };
 
+
+//-----------------------------------------------------------------------------
+// Purpose: User subscribed to a file for the app (from within the app or on the web)
+//-----------------------------------------------------------------------------
 struct RemoteStoragePublishedFileSubscribed_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 21 };
-
-	PublishedFileId_t m_unPublishedFileId;
-	AppId_t m_nAppID;
+	PublishedFileId_t m_nPublishedFileId;	// The published file id
+	AppId_t m_nAppID;						// ID of the app that will consume this file.
 };
 
+//-----------------------------------------------------------------------------
+// Purpose: User unsubscribed from a file for the app (from within the app or on the web)
+//-----------------------------------------------------------------------------
 struct RemoteStoragePublishedFileUnsubscribed_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 22 };
-
-	PublishedFileId_t m_unPublishedFileId;
-	AppId_t m_nAppID;
+	PublishedFileId_t m_nPublishedFileId;	// The published file id
+	AppId_t m_nAppID;						// ID of the app that will consume this file.
 };
 
+
+//-----------------------------------------------------------------------------
+// Purpose: Published file that a user owns was deleted (from within the app or the web)
+//-----------------------------------------------------------------------------
 struct RemoteStoragePublishedFileDeleted_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 23 };
-
-	PublishedFileId_t m_unPublishedFileId;
-	AppId_t m_nAppID;
+	PublishedFileId_t m_nPublishedFileId;	// The published file id
+	AppId_t m_nAppID;						// ID of the app that will consume this file.
 };
+
 
 //-----------------------------------------------------------------------------
 // Purpose: The result of a call to UpdateUserPublishedItemVote()
@@ -643,10 +660,10 @@ struct RemoteStoragePublishedFileDeleted_t
 struct RemoteStorageUpdateUserPublishedItemVoteResult_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 24 };
-
-	EResult m_eResult;
-	PublishedFileId_t m_unPublishedFileId;
+	EResult m_eResult;				// The result of the operation.
+	PublishedFileId_t m_nPublishedFileId;	// The published file id
 };
+
 
 //-----------------------------------------------------------------------------
 // Purpose: The result of a call to GetUserPublishedItemVoteDetails()
@@ -654,10 +671,9 @@ struct RemoteStorageUpdateUserPublishedItemVoteResult_t
 struct RemoteStorageUserVoteDetails_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 25 };
-
-	EResult m_eResult;
-	int32 m_iVote; // Probably an enum
-	PublishedFileId_t m_unPublishedFileId;
+	EResult m_eResult;				// The result of the operation.
+	PublishedFileId_t m_nPublishedFileId;	// The published file id
+	EWorkshopVote m_eVote;			// what the user voted
 };
 
 //-----------------------------------------------------------------------------
@@ -666,8 +682,7 @@ struct RemoteStorageUserVoteDetails_t
 struct RemoteStorageEnumerateUserSharedWorkshopFilesResult_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 26 };
-	
-	EResult m_eResult;
+	EResult m_eResult;				// The result of the operation.
 	int32 m_nResultsReturned;
 	int32 m_nTotalResultCount;
 	PublishedFileId_t m_rgPublishedFileId[ k_unEnumeratePublishedFilesMaxResults ];
@@ -679,9 +694,9 @@ struct RemoteStorageEnumerateUserSharedWorkshopFilesResult_t
 struct RemoteStorageSetUserPublishedFileActionResult_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 27 };
-
-	EResult m_eResult;
-	PublishedFileId_t m_unPublishedFileId;
+	EResult m_eResult;				// The result of the operation.
+	PublishedFileId_t m_nPublishedFileId;	// The published file id
+	EWorkshopFileAction m_eAction;	// the action that was attempted
 };
 
 //-----------------------------------------------------------------------------
@@ -690,13 +705,56 @@ struct RemoteStorageSetUserPublishedFileActionResult_t
 struct RemoteStorageEnumeratePublishedFilesByUserActionResult_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 28 };
-	
-	EResult m_eResult;
-	EWorkshopFileAction m_eAction;
+	EResult m_eResult;				// The result of the operation.
+	EWorkshopFileAction m_eAction;	// the action that was filtered on
 	int32 m_nResultsReturned;
 	int32 m_nTotalResultCount;
 	PublishedFileId_t m_rgPublishedFileId[ k_unEnumeratePublishedFilesMaxResults ];
-	uint32 m_rgRTimes[ k_unEnumeratePublishedFilesMaxResults ];
+	uint32 m_rgRTimeUpdated[ k_unEnumeratePublishedFilesMaxResults ];
+};
+
+
+//-----------------------------------------------------------------------------
+// Purpose: Called periodically while a PublishWorkshopFile is in progress
+//-----------------------------------------------------------------------------
+struct RemoteStoragePublishFileProgress_t
+{
+	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 29 };
+	double m_dPercentFile;
+	bool m_bPreview;
+};
+
+
+//-----------------------------------------------------------------------------
+// Purpose: Called when the content for a published file is updated
+//-----------------------------------------------------------------------------
+struct RemoteStoragePublishedFileUpdated_t
+{
+	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 30 };
+	PublishedFileId_t m_nPublishedFileId;	// The published file id
+	AppId_t m_nAppID;						// ID of the app that will consume this file.
+	UGCHandle_t m_hFile;					// The new content
+};
+
+//-----------------------------------------------------------------------------
+// Purpose: Called when a FileWriteAsync completes
+//-----------------------------------------------------------------------------
+struct RemoteStorageFileWriteAsyncComplete_t
+{
+	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 31 };
+	EResult	m_eResult;						// result
+};
+
+//-----------------------------------------------------------------------------
+// Purpose: Called when a FileReadAsync completes
+//-----------------------------------------------------------------------------
+struct RemoteStorageFileReadAsyncComplete_t
+{
+	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 32 };
+	SteamAPICall_t m_hFileReadAsync;		// call handle of the async read which was made
+	EResult	m_eResult;						// result
+	uint32 m_nOffset;						// offset in the file this read was at
+	uint32 m_cubRead;						// amount read - will the <= the amount requested
 };
 
 #pragma pack( pop )
