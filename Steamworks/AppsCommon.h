@@ -31,10 +31,8 @@
 #define STEAMAPPS_INTERFACE_VERSION_004 "STEAMAPPS_INTERFACE_VERSION004"
 #define STEAMAPPS_INTERFACE_VERSION_005 "STEAMAPPS_INTERFACE_VERSION005"
 #define STEAMAPPS_INTERFACE_VERSION_006 "STEAMAPPS_INTERFACE_VERSION006"
-
-#define STEAMAPPLIST_INTERFACE_VERSION_001 "STEAMAPPLIST_INTERFACE_VERSION001"
-
-
+#define STEAMAPPS_INTERFACE_VERSION_007 "STEAMAPPS_INTERFACE_VERSION007"
+#define STEAMAPPS_INTERFACE_VERSION_008 "STEAMAPPS_INTERFACE_VERSION008"
 
 enum EAppState
 {
@@ -171,21 +169,59 @@ enum ERegisterActivactionCodeResult
 	k_ERegisterActivactionCodeAlreadyOwned = 4
 };
 
+
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
 enum EAppOwnershipFlags
 {
-	k_EAppOwnershipFlagsNone =				0,
-	k_EAppOwnershipFlagsOwnsLicense =		1 << 0,
-	k_EAppOwnershipFlagsFreeLicense =		1 << 1,
-	k_EAppOwnershipFlagsRegionRestricted =	1 << 2,
-	k_EAppOwnershipFlagsLowViolence =		1 << 3,
-	k_EAppOwnershipFlagsInvalidPlatform =	1 << 4,
-	k_EAppOwnershipFlagsSharedLicense =		1 << 5,
-	k_EAppOwnershipFlagsFreeWeekend =		1 << 6,
-	k_EAppOwnershipFlagsLockedLicense =		1 << 7,
-	k_EAppOwnershipFlagsPending	=			1 << 8,
-	k_EAppOwnershipFlagsExpired	=			1 << 9,
-	k_EAppOwnershipFlagsPermanent	=		1 << 10,
-	k_EAppOwnershipFlagsRecurring	=		1 << 11,
+	k_EAppOwnershipFlags_None				= 0x0000,	// unknown
+	k_EAppOwnershipFlags_OwnsLicense		= 0x0001,	// owns license for this game
+	k_EAppOwnershipFlags_FreeLicense		= 0x0002,	// not paid for game
+	k_EAppOwnershipFlags_RegionRestricted	= 0x0004,	// owns app, but not allowed to play in current region
+	k_EAppOwnershipFlags_LowViolence		= 0x0008,	// only low violence version
+	k_EAppOwnershipFlags_InvalidPlatform	= 0x0010,	// app not supported on current platform
+	k_EAppOwnershipFlags_SharedLicense		= 0x0020,	// license was granted by authorized local device
+	k_EAppOwnershipFlags_FreeWeekend		= 0x0040,	// owned by a free weekend licenses
+	k_EAppOwnershipFlags_RetailLicense		= 0x0080,	// has a retail license for game, (CD-Key etc)
+	k_EAppOwnershipFlags_LicenseLocked		= 0x0100,	// shared license is locked (in use) by other user
+	k_EAppOwnershipFlags_LicensePending		= 0x0200,	// owns app, but transaction is still pending. Can't install or play
+	k_EAppOwnershipFlags_LicenseExpired		= 0x0400,	// doesn't own app anymore since license expired
+	k_EAppOwnershipFlags_LicensePermanent	= 0x0800,	// permanent license, not borrowed, or guest or freeweekend etc
+	k_EAppOwnershipFlags_LicenseRecurring	= 0x1000,	// Recurring license, user is charged periodically
+	k_EAppOwnershipFlags_LicenseCanceled	= 0x2000,	// Mark as canceled, but might be still active if recurring
+	k_EAppOwnershipFlags_AutoGrant			= 0x4000,	// Ownership is based on any kind of autogrant license
+	k_EAppOwnershipFlags_PendingGift		= 0x8000,	// user has pending gift to redeem
+	k_EAppOwnershipFlags_RentalNotActivated	= 0x10000,	// Rental hasn't been activated yet
+	k_EAppOwnershipFlags_Rental				= 0x20000,	// Is a rental
+};
+
+
+//-----------------------------------------------------------------------------
+// Purpose: designed as flags to allow filters masks
+//-----------------------------------------------------------------------------
+enum EAppType
+{
+	k_EAppType_Invalid				= 0x000,	// unknown / invalid
+	k_EAppType_Game					= 0x001,	// playable game, default type
+	k_EAppType_Application			= 0x002,	// software application
+	k_EAppType_Tool					= 0x004,	// SDKs, editors & dedicated servers
+	k_EAppType_Demo					= 0x008,	// game demo
+	k_EAppType_Media_DEPRECATED		= 0x010,	// legacy - was used for game trailers, which are now just videos on the web
+	k_EAppType_DLC					= 0x020,	// down loadable content
+	k_EAppType_Guide				= 0x040,	// game guide, PDF etc
+	k_EAppType_Driver				= 0x080,	// hardware driver updater (ATI, Razor etc)
+	k_EAppType_Config				= 0x100,	// hidden app used to config Steam features (backpack, sales, etc)
+	k_EAppType_Hardware				= 0x200,	// a hardware device (Steam Machine, Steam Controller, Steam Link, etc.)
+	k_EAppType_Franchise			= 0x400,	// A hub for collections of multiple apps, eg films, series, games
+	k_EAppType_Video				= 0x800,	// A video component of either a Film or TVSeries (may be the feature, an episode, preview, making-of, etc)
+	k_EAppType_Plugin				= 0x1000,	// Plug-in types for other Apps
+	k_EAppType_Music				= 0x2000,	// Music files
+	k_EAppType_Series				= 0x4000,	// Container app for video series
+		
+	k_EAppType_Shortcut				= 0x40000000,	// just a shortcut, client side only
+	k_EAppType_DepotOnly			= 0x80000000,	// placeholder since depots and apps share the same namespace
 };
 
 enum EAppReleaseState
@@ -197,21 +233,6 @@ enum EAppReleaseState
 	k_EAppReleaseStateReleased,
 };
 
-enum EAppAutoUpdateBehavior
-{
-	// TODO: Reverse this enum
-};
-
-enum EAppAllowDownloadsWhileRunningBehavior
-{
-	// TODO: Reverse this enum
-};
-
-enum EAppDownloadQueuePlacement
-{
-	// TODO: Reverse this enum
-};
-
 struct SHADigestWrapper_t
 {
 	uint32 A;
@@ -221,7 +242,8 @@ struct SHADigestWrapper_t
 	uint32 E;
 };
 
-const int k_cubAppProofOfPurchaseKeyMax = 64;			// max bytes of a legacy cd key we support
+const int k_cubAppProofOfPurchaseKeyMax_Old = 64;			// max bytes of a legacy cd key we support,3.42.61.66之后大小改变
+const int k_cubAppProofOfPurchaseKeyMax = 240;			    // max supported length of a legacy cd key 
 
 #pragma pack( push, 8 )
 //-----------------------------------------------------------------------------
@@ -265,7 +287,6 @@ struct AppEventTriggered_t
 struct DlcInstalled_t
 {
 	enum { k_iCallback = k_iSteamAppsCallbacks + 5 };
-
 	AppId_t m_nAppID;		// AppID of the DLC
 };
 
@@ -294,13 +315,25 @@ struct AppValidationComplete_t
 };
 
 //-----------------------------------------------------------------------------
+// Purpose: possible results when registering an activation code
+//-----------------------------------------------------------------------------
+enum ERegisterActivationCodeResult
+{
+	k_ERegisterActivationCodeResultOK = 0,
+	k_ERegisterActivationCodeResultFail = 1,
+	k_ERegisterActivationCodeResultAlreadyRegistered = 2,
+	k_ERegisterActivationCodeResultTimeout = 3,
+	k_ERegisterActivationCodeAlreadyOwned = 4,
+};
+
+
+//-----------------------------------------------------------------------------
 // Purpose: response to RegisterActivationCode()
 //-----------------------------------------------------------------------------
 struct RegisterActivationCodeResponse_t
 {
 	enum { k_iCallback = k_iSteamAppsCallbacks + 8 };
-
-	ERegisterActivactionCodeResult m_eResult;
+	ERegisterActivationCodeResult m_eResult;
 	uint32 m_unPackageRegistered;						// package that was registered. Only set on success
 };
 
@@ -343,14 +376,57 @@ struct AppBackupStatus_t
 	uint64 m_unBytesFailed;
 };
 
-struct RequestAppProofOfPurchaseKeyResponse_t
+//-----------------------------------------------------------------------------
+// Purpose: response to RegisterActivationCode()
+//-----------------------------------------------------------------------------
+
+struct AppProofOfPurchaseKeyResponse_Old_t
 {
 	enum { k_iCallback = k_iSteamAppsCallbacks + 13 };
-
 	EResult m_eResult;
-	AppId_t m_nAppID;
-	char m_rgchKey[ k_cubAppProofOfPurchaseKeyMax ];	
+	uint32	m_nAppID;
+	char	m_rgchKey[ k_cubAppProofOfPurchaseKeyMax_Old ];
 };
+
+//---------------------------------------------------------------------------------
+// Purpose: posted after the user gains executes a steam url with query parameters
+// such as steam://run/<appid>//?param1=value1;param2=value2;param3=value3; etc
+// while the game is already running.  The new params can be queried
+// with GetLaunchQueryParam.
+//---------------------------------------------------------------------------------
+struct NewLaunchQueryParameters_t
+{
+	enum { k_iCallback = k_iSteamAppsCallbacks + 14 };
+};
+
+
+//-----------------------------------------------------------------------------
+// Purpose: response to RequestAppProofOfPurchaseKey/RequestAllProofOfPurchaseKeys
+// for supporting third-party CD keys, or other proof-of-purchase systems.
+//-----------------------------------------------------------------------------
+struct AppProofOfPurchaseKeyResponse_t
+{
+	enum { k_iCallback = k_iSteamAppsCallbacks + 21 };
+	EResult m_eResult;
+	uint32	m_nAppID;
+	uint32	m_cchKeyLength;
+	char	m_rgchKey[k_cubAppProofOfPurchaseKeyMax];
+};
+
+
+//-----------------------------------------------------------------------------
+// Purpose: response to GetFileDetails
+//-----------------------------------------------------------------------------
+struct FileDetailsResult_t
+{
+	enum { k_iCallback = k_iSteamAppsCallbacks + 23 };
+	EResult		m_eResult;
+	uint64		m_ulFileSize;	// original file size in bytes
+	uint8		m_FileSHA[20];	// original file SHA1 hash
+	uint32		m_unFlags;		// 
+};
+
+
 #pragma pack( pop )
 
 #endif // APPSCOMMON_H

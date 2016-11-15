@@ -1,16 +1,6 @@
-//==========================  Open Steamworks  ================================
+//====== Copyright 1996-2013, Valve Corporation, All rights reserved. =======
 //
-// This file is part of the Open Steamworks project. All individuals associated
-// with this project do not claim ownership of the contents
-// 
-// The code, comments, and all related files, projects, resources,
-// redistributables included with this project are Copyright Valve Corporation.
-// Additionally, Valve, the Valve logo, Half-Life, the Half-Life logo, the
-// Lambda logo, Steam, the Steam logo, Team Fortress, the Team Fortress logo,
-// Opposing Force, Day of Defeat, the Day of Defeat logo, Counter-Strike, the
-// Counter-Strike logo, Source, the Source logo, and Counter-Strike Condition
-// Zero are trademarks and or registered trademarks of Valve Corporation.
-// All other trademarks are property of their respective owners.
+// Purpose: interface to steam ugc
 //
 //=============================================================================
 
@@ -21,33 +11,52 @@
 #endif
 
 
+
 #define STEAMUGC_INTERFACE_VERSION_001 "STEAMUGC_INTERFACE_VERSION001"
 #define STEAMUGC_INTERFACE_VERSION_002 "STEAMUGC_INTERFACE_VERSION002"
 #define STEAMUGC_INTERFACE_VERSION_003 "STEAMUGC_INTERFACE_VERSION003"
+#define STEAMUGC_INTERFACE_VERSION_004 "STEAMUGC_INTERFACE_VERSION004"
+#define STEAMUGC_INTERFACE_VERSION_005 "STEAMUGC_INTERFACE_VERSION005"
+#define STEAMUGC_INTERFACE_VERSION_006 "STEAMUGC_INTERFACE_VERSION006"
+#define STEAMUGC_INTERFACE_VERSION_007 "STEAMUGC_INTERFACE_VERSION007"
+#define STEAMUGC_INTERFACE_VERSION_008 "STEAMUGC_INTERFACE_VERSION008"
+#define STEAMUGC_INTERFACE_VERSION_009 "STEAMUGC_INTERFACE_VERSION009"
+
+// callbacks
+#if defined( VALVE_CALLBACK_PACK_SMALL )
+#pragma pack( push, 4 )
+#elif defined( VALVE_CALLBACK_PACK_LARGE )
+#pragma pack( push, 8 )
+#else
+#error isteamclient.h must be included
+#endif 
+
 
 typedef uint64 UGCQueryHandle_t;
-typedef uint64 UGCQueryHandle_t;
 typedef uint64 UGCUpdateHandle_t;
+
 
 const UGCQueryHandle_t k_UGCQueryHandleInvalid = 0xffffffffffffffffull;
 const UGCUpdateHandle_t k_UGCUpdateHandleInvalid = 0xffffffffffffffffull;
 
-// Combination of sorting and filtering for queries across all UGC
-enum EUGCQuery
+
+// Matching UGC types for queries
+enum EUGCMatchingUGCType
 {
-	k_EUGCQuery_RankedByVote = 0,
-	k_EUGCQuery_RankedByPublicationDate = 1,
-	k_EUGCQuery_AcceptedForGameRankedByAcceptanceDate = 2,
-	k_EUGCQuery_RankedByTrend = 3,
-	k_EUGCQuery_FavoritedByFriendsRankedByPublicationDate = 4,
-	k_EUGCQuery_CreatedByFriendsRankedByPublicationDate = 5,
-	k_EUGCQuery_RankedByNumTimesReported = 6,
-	k_EUGCQuery_CreatedByFollowedUsersRankedByPublicationDate = 7,
-	k_EUGCQuery_NotYetRated = 8,
-	k_EUGCQuery_RankedByTotalVotesAsc = 9,
-	k_EUGCQuery_RankedByVotesUp = 10,
-	k_EUGCQuery_RankedByTextSearch = 11,
-	k_EUGCQuery_RankedByTotalUniqueSubscriptions = 12,
+	k_EUGCMatchingUGCType_Items				 = 0,		// both mtx items and ready-to-use items
+	k_EUGCMatchingUGCType_Items_Mtx			 = 1,
+	k_EUGCMatchingUGCType_Items_ReadyToUse	 = 2,
+	k_EUGCMatchingUGCType_Collections		 = 3,
+	k_EUGCMatchingUGCType_Artwork			 = 4,
+	k_EUGCMatchingUGCType_Videos			 = 5,
+	k_EUGCMatchingUGCType_Screenshots		 = 6,
+	k_EUGCMatchingUGCType_AllGuides			 = 7,		// both web guides and integrated guides
+	k_EUGCMatchingUGCType_WebGuides			 = 8,
+	k_EUGCMatchingUGCType_IntegratedGuides	 = 9,
+	k_EUGCMatchingUGCType_UsableInGame		 = 10,		// ready-to-use items and integrated guides
+	k_EUGCMatchingUGCType_ControllerBindings = 11,
+	k_EUGCMatchingUGCType_GameManagedItems	 = 12,		// game managed items (not managed by users)
+	k_EUGCMatchingUGCType_All				 = ~0,		// return everything
 };
 
 // Different lists of published UGC for a user.
@@ -65,23 +74,6 @@ enum EUserUGCList
 	k_EUserUGCList_Followed,
 };
 
-// Matching UGC types for queries
-enum EUGCMatchingUGCType
-{
-	k_EUGCMatchingUGCType_Items = 0,		// both mtx items and ready-to-use items
-	k_EUGCMatchingUGCType_Items_Mtx = 1,
-	k_EUGCMatchingUGCType_Items_ReadyToUse = 2,
-	k_EUGCMatchingUGCType_Collections = 3,
-	k_EUGCMatchingUGCType_Artwork = 4,
-	k_EUGCMatchingUGCType_Videos = 5,
-	k_EUGCMatchingUGCType_Screenshots = 6,
-	k_EUGCMatchingUGCType_AllGuides = 7,		// both web guides and integrated guides
-	k_EUGCMatchingUGCType_WebGuides = 8,
-	k_EUGCMatchingUGCType_IntegratedGuides = 9,
-	k_EUGCMatchingUGCType_UsableInGame = 10,		// ready-to-use items and integrated guides
-	k_EUGCMatchingUGCType_ControllerBindings = 11,
-};
-
 // Sort order for user published UGC lists (defaults to creation order descending)
 enum EUserUGCListSortOrder
 {
@@ -94,11 +86,112 @@ enum EUserUGCListSortOrder
 	k_EUserUGCListSortOrder_ForModeration,
 };
 
+// Combination of sorting and filtering for queries across all UGC
+enum EUGCQuery
+{
+	k_EUGCQuery_RankedByVote								  = 0,
+	k_EUGCQuery_RankedByPublicationDate						  = 1,
+	k_EUGCQuery_AcceptedForGameRankedByAcceptanceDate		  = 2,
+	k_EUGCQuery_RankedByTrend								  = 3,
+	k_EUGCQuery_FavoritedByFriendsRankedByPublicationDate	  = 4,
+	k_EUGCQuery_CreatedByFriendsRankedByPublicationDate		  = 5,
+	k_EUGCQuery_RankedByNumTimesReported					  = 6,
+	k_EUGCQuery_CreatedByFollowedUsersRankedByPublicationDate = 7,
+	k_EUGCQuery_NotYetRated									  = 8,
+	k_EUGCQuery_RankedByTotalVotesAsc						  = 9,
+	k_EUGCQuery_RankedByVotesUp								  = 10,
+	k_EUGCQuery_RankedByTextSearch							  = 11,
+	k_EUGCQuery_RankedByTotalUniqueSubscriptions			  = 12,
+	k_EUGCQuery_RankedByPlaytimeTrend						  = 13,
+	k_EUGCQuery_RankedByTotalPlaytime						  = 14,
+	k_EUGCQuery_RankedByAveragePlaytimeTrend				  = 15,
+	k_EUGCQuery_RankedByLifetimeAveragePlaytime				  = 16,
+	k_EUGCQuery_RankedByPlaytimeSessionsTrend				  = 17,
+	k_EUGCQuery_RankedByLifetimePlaytimeSessions			  = 18,
+};
+
+enum EItemUpdateStatus
+{
+	k_EItemUpdateStatusInvalid 				= 0, // The item update handle was invalid, job might be finished, listen too SubmitItemUpdateResult_t
+	k_EItemUpdateStatusPreparingConfig 		= 1, // The item update is processing configuration data
+	k_EItemUpdateStatusPreparingContent		= 2, // The item update is reading and processing content files
+	k_EItemUpdateStatusUploadingContent		= 3, // The item update is uploading content changes to Steam
+	k_EItemUpdateStatusUploadingPreviewFile	= 4, // The item update is uploading new preview file image
+	k_EItemUpdateStatusCommittingChanges	= 5  // The item update is committing all changes
+};
+
+enum EItemState
+{
+	k_EItemStateNone			= 0,	// item not tracked on client
+	k_EItemStateSubscribed		= 1,	// current user is subscribed to this item. Not just cached.
+	k_EItemStateLegacyItem		= 2,	// item was created with ISteamRemoteStorage
+	k_EItemStateInstalled		= 4,	// item is installed and usable (but maybe out of date)
+	k_EItemStateNeedsUpdate		= 8,	// items needs an update. Either because it's not installed yet or creator updated content
+	k_EItemStateDownloading		= 16,	// item update is currently downloading
+	k_EItemStateDownloadPending	= 32,	// DownloadItem() was called for this item, content isn't available until DownloadItemResult_t is fired
+};
+
+enum EItemStatistic
+{
+	k_EItemStatistic_NumSubscriptions		= 0,
+	k_EItemStatistic_NumFavorites			= 1,
+	k_EItemStatistic_NumFollowers			= 2,
+	k_EItemStatistic_NumUniqueSubscriptions = 3,
+	k_EItemStatistic_NumUniqueFavorites		= 4,
+	k_EItemStatistic_NumUniqueFollowers		= 5,
+	k_EItemStatistic_NumUniqueWebsiteViews	= 6,
+	k_EItemStatistic_ReportScore			= 7,
+	k_EItemStatistic_NumSecondsPlayed		= 8,
+	k_EItemStatistic_NumPlaytimeSessions	= 9,
+	k_EItemStatistic_NumComments			= 10,
+};
+
+enum EItemPreviewType
+{
+	k_EItemPreviewType_Image							= 0,	// standard image file expected (e.g. jpg, png, gif, etc.)
+	k_EItemPreviewType_YouTubeVideo						= 1,	// video id is stored
+	k_EItemPreviewType_Sketchfab						= 2,	// model id is stored
+	k_EItemPreviewType_EnvironmentMap_HorizontalCross	= 3,	// standard image file expected - cube map in the layout
+																// +---+---+-------+
+																// |   |Up |       |
+																// +---+---+---+---+
+																// | L | F | R | B |
+																// +---+---+---+---+
+																// |   |Dn |       |
+																// +---+---+---+---+
+	k_EItemPreviewType_EnvironmentMap_LatLong			= 4,	// standard image file expected
+	k_EItemPreviewType_ReservedMax						= 255,	// you can specify your own types above this value
+};
+
+//-----------------------------------------------------------------------------
+// Purpose: Broadcast upload result details
+//-----------------------------------------------------------------------------
+enum EBroadcastUploadResult
+{
+	k_EBroadcastUploadResultNone = 0,	// broadcast state unknown
+	k_EBroadcastUploadResultOK = 1,		// broadcast was good, no problems
+	k_EBroadcastUploadResultInitFailed = 2,	// broadcast init failed
+	k_EBroadcastUploadResultFrameFailed = 3,	// broadcast frame upload failed
+	k_EBroadcastUploadResultTimeout = 4,	// broadcast upload timed out
+	k_EBroadcastUploadResultBandwidthExceeded = 5,	// broadcast send too much data
+	k_EBroadcastUploadResultLowFPS = 6,	// broadcast FPS too low
+	k_EBroadcastUploadResultMissingKeyFrames = 7,	// broadcast sending not enough key frames
+	k_EBroadcastUploadResultNoConnection = 8,	// broadcast client failed to connect to relay
+	k_EBroadcastUploadResultRelayFailed = 9,	// relay dropped the upload
+	k_EBroadcastUploadResultSettingsChanged = 10,	// the client changed broadcast settings 
+	k_EBroadcastUploadResultMissingAudio = 11,	// client failed to send audio data
+	k_EBroadcastUploadResultTooFarBehind = 12,	// clients was too slow uploading
+};
+
+
+const uint32 kNumUGCResultsPerPage = 50;
+const uint32 k_cchDeveloperMetadataMax = 5000;
+
 // Details for a single published file/UGC
 struct SteamUGCDetails_t
 {
 	PublishedFileId_t m_nPublishedFileId;
-	EResult m_eResult;												// The result of the operation.
+	EResult m_eResult;												// The result of the operation.	
 	EWorkshopFileType m_eFileType;									// Type of the file
 	AppId_t m_nCreatorAppID;										// ID of the app that created this file.
 	AppId_t m_nConsumerAppID;										// ID of the app that will consume this file.
@@ -112,7 +205,7 @@ struct SteamUGCDetails_t
 	bool m_bBanned;													// whether the file was banned
 	bool m_bAcceptedForUse;											// developer has specifically flagged this item as accepted in the Workshop
 	bool m_bTagsTruncated;											// whether the list of tags was too long to be returned in the provided buffer
-	char m_rgchTags[k_cchTagListMax];								// comma separated list of all tags associated with this file
+	char m_rgchTags[k_cchTagListMax];								// comma separated list of all tags associated with this file	
 	// file/url information
 	UGCHandle_t m_hFile;											// The handle of the primary file
 	UGCHandle_t m_hPreviewFile;										// The handle of the preview file
@@ -124,17 +217,8 @@ struct SteamUGCDetails_t
 	uint32 m_unVotesUp;												// number of votes up
 	uint32 m_unVotesDown;											// number of votes down
 	float m_flScore;												// calculated score
+	// collection details
 	uint32 m_unNumChildren;											// if m_eFileType == k_EWorkshopFileTypeCollection, then this number will be the number of children contained within the collection
-};
-
-enum EItemUpdateStatus
-{
-	k_EItemUpdateStatusInvalid = 0, // The item update handle was invalid, job might be finished, listen too SubmitItemUpdateResult_t
-	k_EItemUpdateStatusPreparingConfig = 1, // The item update is processing configuration data
-	k_EItemUpdateStatusPreparingContent = 2, // The item update is reading and processing content files
-	k_EItemUpdateStatusUploadingContent = 3, // The item update is uploading content changes to Steam
-	k_EItemUpdateStatusUploadingPreviewFile = 4, // The item update is uploading new preview file image
-	k_EItemUpdateStatusCommittingChanges = 5  // The item update is committing all changes
 };
 
 //-----------------------------------------------------------------------------
@@ -163,7 +247,7 @@ struct SteamUGCRequestUGCDetailsResult_t
 
 
 //-----------------------------------------------------------------------------
-// Purpose: result for ISteamUGC::CreateItem()
+// Purpose: result for ISteamUGC::CreateItem() 
 //-----------------------------------------------------------------------------
 struct CreateItemResult_t
 {
@@ -175,7 +259,7 @@ struct CreateItemResult_t
 
 
 //-----------------------------------------------------------------------------
-// Purpose: result for ISteamUGC::SubmitItemUpdate()
+// Purpose: result for ISteamUGC::SubmitItemUpdate() 
 //-----------------------------------------------------------------------------
 struct SubmitItemUpdateResult_t
 {
@@ -186,7 +270,7 @@ struct SubmitItemUpdateResult_t
 
 
 //-----------------------------------------------------------------------------
-// Purpose: a new Workshop item has been installed
+// Purpose: a Workshop item has been installed or updated
 //-----------------------------------------------------------------------------
 struct ItemInstalled_t
 {
@@ -194,5 +278,73 @@ struct ItemInstalled_t
 	AppId_t m_unAppID;
 	PublishedFileId_t m_nPublishedFileId;
 };
+
+
+//-----------------------------------------------------------------------------
+// Purpose: result of DownloadItem(), existing item files can be accessed again
+//-----------------------------------------------------------------------------
+struct DownloadItemResult_t
+{
+	enum { k_iCallback = k_iClientUGCCallbacks + 6 };
+	AppId_t m_unAppID;
+	PublishedFileId_t m_nPublishedFileId;
+	EResult m_eResult;
+};
+
+//-----------------------------------------------------------------------------
+// Purpose: result of AddItemToFavorites() or RemoveItemFromFavorites()
+//-----------------------------------------------------------------------------
+struct UserFavoriteItemsListChanged_t
+{
+	enum { k_iCallback = k_iClientUGCCallbacks + 7 };
+	PublishedFileId_t m_nPublishedFileId;
+	EResult m_eResult;
+	bool m_bWasAddRequest;
+};
+
+//-----------------------------------------------------------------------------
+// Purpose: The result of a call to SetUserItemVote()
+//-----------------------------------------------------------------------------
+struct SetUserItemVoteResult_t
+{
+	enum { k_iCallback = k_iClientUGCCallbacks + 8 };
+	PublishedFileId_t m_nPublishedFileId;
+	EResult m_eResult;
+	bool m_bVoteUp;
+};
+
+//-----------------------------------------------------------------------------
+// Purpose: The result of a call to GetUserItemVote()
+//-----------------------------------------------------------------------------
+struct GetUserItemVoteResult_t
+{
+	enum { k_iCallback = k_iClientUGCCallbacks + 9 };
+	PublishedFileId_t m_nPublishedFileId;
+	EResult m_eResult;
+	bool m_bVotedUp;
+	bool m_bVotedDown;
+	bool m_bVoteSkipped;
+};
+
+//-----------------------------------------------------------------------------
+// Purpose: The result of a call to StartPlaytimeTracking()
+//-----------------------------------------------------------------------------
+struct StartPlaytimeTrackingResult_t
+{
+	enum { k_iCallback = k_iClientUGCCallbacks + 10 };
+	EResult m_eResult;
+};
+
+//-----------------------------------------------------------------------------
+// Purpose: The result of a call to StopPlaytimeTracking()
+//-----------------------------------------------------------------------------
+struct StopPlaytimeTrackingResult_t
+{
+	enum { k_iCallback = k_iClientUGCCallbacks + 11 };
+	EResult m_eResult;
+};
+
+
+#pragma pack( pop )
 
 #endif // UGCCOMMON_H

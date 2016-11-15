@@ -148,6 +148,9 @@ typedef signed char int8;
 	#endif
 #endif
 
+#ifndef REFERENCE
+#define REFERENCE(arg) ((void)arg)
+#endif
 
 #ifdef _MSC_VER
 	#define STEAMWORKS_DEPRECATE( Message ) __declspec(deprecated(#Message))
@@ -266,7 +269,7 @@ typedef signed char int8;
 #error ???
 #endif 
 
-typedef struct
+typedef struct ValvePackingSentinel_t
 {
     uint32 m_u32;
     uint64 m_u64;
@@ -287,6 +290,7 @@ typedef struct
 #define METHOD_DESC(DESC) CLANG_ATTR( "desc:" #DESC ";" )
 #define IGNOREATTR() CLANG_ATTR( "ignore" )
 #define OUT_STRUCT() CLANG_ATTR( "out_struct: ;" )
+#define OUT_STRING() CLANG_ATTR( "out_string: ;" )
 #define OUT_ARRAY_CALL(COUNTER,FUNCTION,PARAMS) CLANG_ATTR( "out_array_call:" #COUNTER "," #FUNCTION "," #PARAMS ";" )
 #define OUT_ARRAY_COUNT(COUNTER, DESC) CLANG_ATTR( "out_array_count:" #COUNTER  ";desc:" #DESC )
 #define ARRAY_COUNT(COUNTER) CLANG_ATTR( "array_count:" #COUNTER ";" )
@@ -295,8 +299,8 @@ typedef struct
 #define OUT_BUFFER_COUNT(COUNTER) CLANG_ATTR( "out_buffer_count:" #COUNTER ";" )
 #define OUT_STRING_COUNT(COUNTER) CLANG_ATTR( "out_string_count:" #COUNTER ";" )
 #define DESC(DESC) CLANG_ATTR("desc:" #DESC ";")
-
-
+#define CALL_RESULT(RESULT_TYPE) CLANG_ATTR("callresult:" #RESULT_TYPE ";")
+#define CALL_BACK(RESULT_TYPE) CLANG_ATTR("callback:" #RESULT_TYPE ";")
 
 // steamclient/api
 
@@ -360,7 +364,7 @@ enum EUniverse
 	k_EUniverseMax
 };
 
-
+#include "ELaunchOptionType.h"
 
 // these is outside NO_STEAM because external things use it
 #include "ESteamError.h"
@@ -371,6 +375,7 @@ enum EUniverse
 #include "ESteamSeekMethod.h"
 #include "ESteamBufferMethod.h"
 #include "ESteamFindFilter.h"
+#include "ELaunchOptionType.h"
 #include "ESteamSubscriptionBillingInfoType.h"
 #include "ESteamPaymentCardType.h"
 #include "ESteamAppUpdateStatsQueryType.h"
@@ -445,12 +450,13 @@ typedef uint64 GID_t;
 const GID_t k_GIDNil = 0xffffffffffffffffull;
 
 // For convenience, we define a number of types that are just new names for GIDs
-typedef GID_t JobID_t;			// Each Job has a unique ID
+typedef uint64 JobID_t;			// Each Job has a unique ID
 typedef GID_t TxnID_t;			// Each financial transaction has a unique ID
 
 const GID_t k_TxnIDNil = k_GIDNil;
 const GID_t k_TxnIDUnknown = 0;
 
+const JobID_t k_JobIDNil = 0xffffffffffffffffull;
 
 // this is baked into client messages and interfaces as an int, 
 // make sure we never break this.
@@ -459,6 +465,11 @@ const PackageId_t k_uPackageIdFreeSub = 0x0;
 const PackageId_t k_uPackageIdInvalid = 0xFFFFFFFF;
 const PackageId_t k_uPackageIdWallet = -2;
 const PackageId_t k_uPackageIdMicroTxn = -3;
+
+
+typedef uint32 BundleId_t;
+const BundleId_t k_uBundleIdInvalid = 0;
+
 
 // this is baked into client messages and interfaces as an int, 
 // make sure we never break this.
@@ -557,6 +568,7 @@ const AssetClassId_t k_ulAssetClassIdInvalid = 0x0;
 
 typedef uint32 PhysicalItemId_t;
 const PhysicalItemId_t k_uPhysicalItemIdInvalid = 0x0;
+
 
 // this is baked into client messages and interfaces as an int, 
 // make sure we never break this.  AppIds and DepotIDs also presently
@@ -766,11 +778,12 @@ enum ECallbackType
 	k_iSteamMusicCallbacks = 4000,
 	k_iSteamMusicRemoteCallbacks = 4100,
 	k_iClientVRCallbacks = 4200,
-	k_iClientReservedCallbacks = 4300,
-	k_iSteamReservedCallbacks = 4400,
+	k_iClientGameNotificationCallbacks = 4300,
+	k_iSteamGameNotificationCallbacks = 4400,
 	k_iSteamHTMLSurfaceCallbacks = 4500,
 	k_iClientVideoCallbacks = 4600,
 	k_iClientInventoryCallbacks = 4700,
+	k_iClientBluetoothManagerCallbacks = 4800,
 };
 
 

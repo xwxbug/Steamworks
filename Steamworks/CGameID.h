@@ -41,6 +41,12 @@ public:
 	{
 		m_ulGameID = ulGameID;
 	}
+#ifdef INT64_DIFFERENT_FROM_INT64_T
+	CGameID( uint64_t ulGameID )
+	{
+		m_ulGameID = (uint64)ulGameID;
+	}
+#endif
 
 	explicit CGameID( int32 nAppID )
 	{
@@ -76,10 +82,10 @@ public:
 		m_gameID.m_nType = k_EGameIDTypeGameMod;
 
 		char rgchModDir[MAX_PATH];
-		Q_FileBase( pchModPath, rgchModDir, sizeof( rgchModDir ) );
+		V_FileBase( pchModPath, rgchModDir, sizeof( rgchModDir ) );
 		CRC32_t crc32;
 		CRC32_Init( &crc32 );
-		CRC32_ProcessBuffer( &crc32, rgchModDir, Q_strlen( rgchModDir ) );
+		CRC32_ProcessBuffer( &crc32, rgchModDir, V_strlen( rgchModDir ) );
 		CRC32_Final( &crc32 );
 
 		// set the high-bit on the mod-id 
@@ -96,8 +102,10 @@ public:
 
 		CRC32_t crc32;
 		CRC32_Init( &crc32 );
-		CRC32_ProcessBuffer( &crc32, pchExePath, Q_strlen( pchExePath ) );
-		CRC32_ProcessBuffer( &crc32, pchAppName, Q_strlen( pchAppName ) );
+		if ( pchExePath )
+			CRC32_ProcessBuffer( &crc32, pchExePath, V_strlen( pchExePath ) );
+		if ( pchAppName )
+			CRC32_ProcessBuffer( &crc32, pchAppName, V_strlen( pchAppName ) );
 		CRC32_Final( &crc32 );
 
 		// set the high-bit on the mod-id 
@@ -117,7 +125,7 @@ public:
 		CRC32_t crc32;
 		CRC32_Init( &crc32 );
 		const char *pchFileId = vstFileID.Render();
-		CRC32_ProcessBuffer( &crc32, pchFileId, Q_strlen( pchFileId ) );
+		CRC32_ProcessBuffer( &crc32, pchFileId, V_strlen( pchFileId ) );
 		CRC32_Final( &crc32 );
 
 		// set the high-bit on the mod-id 
@@ -139,6 +147,11 @@ public:
 	uint64 *GetUint64Ptr()
 	{
 		return &m_ulGameID;
+	}
+
+	void Set( uint64 ulGameID )
+	{
+		m_ulGameID = ulGameID;
 	}
 
 	bool IsMod() const
@@ -193,16 +206,16 @@ public:
 		{
 		case k_EGameIDTypeApp:
 			return m_gameID.m_nAppID != k_uAppIdInvalid;
-			break;
+
 		case k_EGameIDTypeGameMod:
 			return m_gameID.m_nAppID != k_uAppIdInvalid && m_gameID.m_nModID & 0x80000000;
-			break;
+
 		case k_EGameIDTypeShortcut:
 			return (m_gameID.m_nModID & 0x80000000) != 0;
-			break;
+
 		case k_EGameIDTypeP2P:
 			return m_gameID.m_nAppID == k_uAppIdInvalid && m_gameID.m_nModID & 0x80000000;
-			break;
+
 		default:
 #if defined(Assert)
 			Assert(false);

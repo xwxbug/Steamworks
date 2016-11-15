@@ -28,12 +28,10 @@
 #define CLIENTSCREENSHOTS_INTERFACE_VERSION "CLIENTSCREENSHOTS_INTERFACE_VERSION001"
 #define STEAMSCREENSHOTS_INTERFACE_VERSION_001 "STEAMSCREENSHOTS_INTERFACE_VERSION001"
 #define STEAMSCREENSHOTS_INTERFACE_VERSION_002 "STEAMSCREENSHOTS_INTERFACE_VERSION002"
-
-// Handle is valid for the lifetime of your process and no longer
-typedef uint32 ScreenshotHandle;
-#define INVALID_SCREENSHOT_HANDLE 0
+#define STEAMSCREENSHOTS_INTERFACE_VERSION_003 "STEAMSCREENSHOTS_INTERFACE_VERSION003"
 
 const uint32 k_nScreenshotMaxTaggedUsers = 32;
+const uint32 k_nScreenshotMaxTaggedPublishedFiles = 32;
 const int k_cubUFSTagTypeMax = 255;
 const int k_cubUFSTagValueMax = 255;
 
@@ -41,6 +39,19 @@ const int k_cubUFSTagValueMax = 255;
 // one will be generated.
 const int k_ScreenshotThumbWidth = 200;
 
+// Handle is valid for the lifetime of your process and no longer
+typedef uint32 ScreenshotHandle; 
+#define INVALID_SCREENSHOT_HANDLE 0
+
+enum EVRScreenshotType
+{
+	k_EVRScreenshotType_None			= 0,
+	k_EVRScreenshotType_Mono			= 1,
+	k_EVRScreenshotType_Stereo			= 2,
+	k_EVRScreenshotType_MonoCubemap		= 3,
+	k_EVRScreenshotType_MonoPanorama	= 4,
+	k_EVRScreenshotType_StereoPanorama	= 5
+};
 
 // callbacks
 #pragma pack( push, 8 )
@@ -52,7 +63,6 @@ const int k_ScreenshotThumbWidth = 200;
 struct ScreenshotReady_t
 {
 	enum { k_iCallback = k_iSteamScreenshotsCallbacks + 1 };
-
 	ScreenshotHandle m_hLocal;
 	EResult m_eResult;
 };

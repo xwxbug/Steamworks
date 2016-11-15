@@ -1,33 +1,46 @@
-//==========================  Open Steamworks  ================================
-//
-// This file is part of the Open Steamworks project. All individuals associated
-// with this project do not claim ownership of the contents
-// 
-// The code, comments, and all related files, projects, resources,
-// redistributables included with this project are Copyright Valve Corporation.
-// Additionally, Valve, the Valve logo, Half-Life, the Half-Life logo, the
-// Lambda logo, Steam, the Steam logo, Team Fortress, the Team Fortress logo,
-// Opposing Force, Day of Defeat, the Day of Defeat logo, Counter-Strike, the
-// Counter-Strike logo, Source, the Source logo, and Counter-Strike Condition
-// Zero are trademarks and or registered trademarks of Valve Corporation.
-// All other trademarks are property of their respective owners.
-//
-//=============================================================================
+//============ Copyright (c) Valve Corporation, All rights reserved. ============
 
-#ifndef MUSICCOMMON_H
-#define MUSICCOMMON_H
+#ifndef ISTEAMMUSICCOMMON_H
+#define ISTEAMMUSICCOMMON_H
 #ifdef _WIN32
 #pragma once
 #endif
 
+#include "SteamTypes.h"
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
 enum AudioPlayback_Status
 {
-	AudioPlayback_Undefined = 0,
+	AudioPlayback_Undefined = 0, 
 	AudioPlayback_Playing = 1,
 	AudioPlayback_Paused = 2,
 	AudioPlayback_Idle = 3
 };
 
+
+
 #define STEAMMUSIC_INTERFACE_VERSION_001 "STEAMMUSIC_INTERFACE_VERSION001"
 
-#endif // MUSICCOMMON_H
+// callbacks
+#if defined( VALVE_CALLBACK_PACK_SMALL )
+#pragma pack( push, 4 )
+#elif defined( VALVE_CALLBACK_PACK_LARGE )
+#pragma pack( push, 8 )
+#else
+#error isteamclient.h must be included
+#endif 
+
+
+DEFINE_CALLBACK( PlaybackStatusHasChanged_t, k_iSteamMusicCallbacks + 1 )
+END_DEFINE_CALLBACK_0()
+
+DEFINE_CALLBACK( VolumeHasChanged_t, k_iSteamMusicCallbacks + 2 )
+ 	CALLBACK_MEMBER( 0,	float, m_flNewVolume )
+END_DEFINE_CALLBACK_1()
+
+#pragma pack( pop )
+
+
+#endif // ISTEAMMUSICCOMMON_H

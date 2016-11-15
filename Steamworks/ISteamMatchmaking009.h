@@ -44,10 +44,10 @@ public:
 	virtual bool GetFavoriteGame( int iGame, AppId_t *pnAppID, uint32 *pnIP, uint16 *pnConnPort, uint16 *pnQueryPort, uint32 *punFlags, uint32 *pRTime32LastPlayedOnServer ) = 0;
 
 	// adds the game server to the local list; updates the time played of the server if it already exists in the list
-	virtual int AddFavoriteGame( AppId_t nAppID, uint32 nIP, uint16 nConnPort, uint16 nQueryPort, uint32 unFlags, uint32 rTime32LastPlayedOnServer ) =0;
+	virtual int AddFavoriteGame( AppId_t nAppID, uint32 nIP, uint16 nConnPort, uint16 nQueryPort, uint32 unFlags, uint32 rTime32LastPlayedOnServer ) = 0;
 	
 	// removes the game server from the local storage; returns true if one was removed
-    virtual bool RemoveFavoriteGame( AppId_t nAppID, uint32 nIP, uint16 nConnPort, uint16 nQueryPort, uint32 unFlags ) = 0;
+	virtual bool RemoveFavoriteGame( AppId_t nAppID, uint32 nIP, uint16 nConnPort, uint16 nQueryPort, uint32 unFlags ) = 0;
 
 	///////
 	// Game lobby functions
@@ -76,6 +76,7 @@ public:
 		}
 	*/
 	// 
+	CALL_RESULT( LobbyMatchList_t )
 	virtual SteamAPICall_t RequestLobbyList() = 0;
 	// filters for lobbies
 	// this needs to be called before RequestLobbyList() to take effect
@@ -92,26 +93,28 @@ public:
 	// sets how many results to return, the lower the count the faster it is to download the lobby results & details to the client
 	virtual void AddRequestLobbyListResultCountFilter( int cMaxResults ) = 0;
 
-	virtual void AddRequestLobbyListCompatibleMembersFilter( CSteamID steamID ) = 0;
+	virtual void AddRequestLobbyListCompatibleMembersFilter( CSteamID steamIDLobby ) = 0;
 
 	// returns the CSteamID of a lobby, as retrieved by a RequestLobbyList call
 	// should only be called after a LobbyMatchList_t callback is received
 	// iLobby is of the range [0, LobbyMatchList_t::m_nLobbiesMatching)
 	// the returned CSteamID::IsValid() will be false if iLobby is out of range
-	STEAMWORKS_STRUCT_RETURN_1(CSteamID, GetLobbyByIndex, int, iLobby) /*virtual CSteamID GetLobbyByIndex( int iLobby ) = 0;*/
+	virtual CSteamID GetLobbyByIndex( int iLobby ) = 0;
 
 	// Create a lobby on the Steam servers.
 	// If private, then the lobby will not be returned by any RequestLobbyList() call; the CSteamID
 	// of the lobby will need to be communicated via game channels or via InviteUserToLobby()
 	// this is an asynchronous request
-	// results will be returned by LobbyCreated_t callback and call result; lobby is joined & ready to use at this pointer
+	// results will be returned by LobbyCreated_t callback and call result; lobby is joined & ready to use at this point
 	// a LobbyEnter_t callback will also be received (since the local user is joining their own lobby)
+	CALL_RESULT( LobbyCreated_t )
 	virtual SteamAPICall_t CreateLobby( ELobbyType eLobbyType, int cMaxMembers ) = 0;
 
 	// Joins an existing lobby
 	// this is an asynchronous request
 	// results will be returned by LobbyEnter_t callback & call result, check m_EChatRoomEnterResponse to see if was successful
 	// lobby metadata is available to use immediately on this call completing
+	CALL_RESULT( LobbyEnter_t )
 	virtual SteamAPICall_t JoinLobby( CSteamID steamIDLobby ) = 0;
 
 	// Leave a lobby; this will take effect immediately on the client side
@@ -135,7 +138,8 @@ public:
 	virtual int GetNumLobbyMembers( CSteamID steamIDLobby ) = 0;
 	// returns the CSteamID of a user in the lobby
 	// iMember is of range [0,GetNumLobbyMembers())
-	STEAMWORKS_STRUCT_RETURN_2(CSteamID, GetLobbyMemberByIndex, CSteamID, steamIDLobby, int, iMember) /*virtual CSteamID GetLobbyMemberByIndex( CSteamID steamIDLobby, int iMember ) = 0;*/
+	// note that the current user must be in a lobby to retrieve CSteamIDs of other users in that lobby
+	virtual CSteamID GetLobbyMemberByIndex( CSteamID steamIDLobby, int iMember ) = 0;
 
 	// Get data associated with this lobby
 	// takes a simple key, and returns the string associated with it
@@ -180,7 +184,8 @@ public:
 	// this will send down all the metadata associated with a lobby
 	// this is an asynchronous call
 	// returns false if the local user is not connected to the Steam servers
-	// restart are returned by a LobbyDataUpdate_t callback
+	// results will be returned by a LobbyDataUpdate_t callback
+	// if the specified lobby doesn't exist, LobbyDataUpdate_t::m_bSuccess will be set to false
 	virtual bool RequestLobbyData( CSteamID steamIDLobby ) = 0;
 	
 	// sets the game server associated with the lobby
@@ -207,7 +212,7 @@ public:
 	// you must be a member of the lobby to access this
 	// there always one lobby owner - if the current owner leaves, another user will become the owner
 	// it is possible (bur rare) to join a lobby just as the owner is leaving, thus entering a lobby with self as the owner
-	STEAMWORKS_STRUCT_RETURN_1(CSteamID, GetLobbyOwner, CSteamID, steamIDLobby) /*virtual CSteamID GetLobbyOwner( CSteamID steamIDLobby ) = 0;*/
+	virtual CSteamID GetLobbyOwner( CSteamID steamIDLobby ) = 0;
 
 	// changes who the lobby owner is
 	// you must be the lobby owner for this to succeed, and steamIDNewOwner must be in the lobby
@@ -216,7 +221,15 @@ public:
 
 	// link two lobbies for the purposes of checking player compatibility
 	// you must be the lobby owner of both lobbies
-	virtual bool SetLinkedLobby( CSteamID steamIDLobby, CSteamID steamIDLobby2 ) = 0;
+	virtual bool SetLinkedLobby( CSteamID steamIDLobby, CSteamID steamIDLobbyDependent ) = 0;
+
+#ifdef _PS3
+	// changes who the lobby owner is
+	// you must be the lobby owner for this to succeed, and steamIDNewOwner must be in the lobby
+	// after completion, the local user will no longer be the owner
+	virtual void CheckForPSNGameBootInvite( unsigned int iGameBootAttributes  ) = 0;
+#endif
+	CALL_BACK( LobbyChatUpdate_t )
 };
 
 #endif // ISTEAMMATCHMAKING009_H

@@ -28,7 +28,7 @@
 //-----------------------------------------------------------------------------
 // Purpose: Functions for authenticating users via Steam to play on a game server
 //-----------------------------------------------------------------------------
-abstract_class ISteamGameServerStats001
+class ISteamGameServerStats001
 {
 public:
 	// downloads stats for the user

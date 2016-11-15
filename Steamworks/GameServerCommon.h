@@ -34,6 +34,7 @@
 #define STEAMGAMESERVER_INTERFACE_VERSION_011 "SteamGameServer011"
 #define STEAMGAMESERVER_INTERFACE_VERSION_012 "SteamGameServer012"
 
+#define CLIENTGAMESERVER_INTERFACE_VERSION001 "CLIENTGAMESERVER_INTERFACE_VERSION001"
 
 // Result codes to GSHandleClientDeny/Kick
 enum EDenyReason
@@ -71,11 +72,9 @@ struct GSClientApprove_t
 struct GSClientDeny_t
 {
 	enum { k_iCallback = k_iSteamGameServerCallbacks + 2 };
-
 	CSteamID m_SteamID;
-
 	EDenyReason m_eDenyReason;
-	char m_pchOptionalText[ 128 ];
+	char m_rgchOptionalText[128];
 };
 
 
@@ -83,7 +82,6 @@ struct GSClientDeny_t
 struct GSClientKick_t
 {
 	enum { k_iCallback = k_iSteamGameServerCallbacks + 3 };
-
 	CSteamID m_SteamID;
 	EDenyReason m_eDenyReason;
 };

@@ -96,11 +96,14 @@ enum EFriendRelationship
 	k_EFriendRelationshipRequestInitiator = 4,
 	k_EFriendRelationshipIgnored = 5,			// this is stored; the user has explicit blocked this other user from comments/chat/etc
 	k_EFriendRelationshipIgnoredFriend = 6,
-	k_EFriendRelationshipSuggested = 7,
+	k_EFriendRelationshipSuggested_DEPRECATED = 7,		// was used by the original implementation of the facebook linking feature, but now unused.
 
 	// keep this updated
 	k_EFriendRelationshipMax = 8,
 };
+
+// friends group identifier type
+typedef int16 FriendsGroupID_t;
 
 enum EChatRoomType
 {
@@ -380,7 +383,6 @@ struct PersonaStateChange_t
 struct GameOverlayActivated_t
 {
 	enum { k_iCallback = k_iSteamFriendsCallbacks + 31 };
-
 	uint8 m_bActive;	// true if it's just been activated, false otherwise
 };
 
@@ -392,7 +394,6 @@ struct GameOverlayActivated_t
 struct GameServerChangeRequested_t
 {
 	enum { k_iCallback = k_iSteamFriendsCallbacks + 32 };
-
 	char m_rgchServer[64];		// server address ("127.0.0.1:27015", "tf2.valvesoftware.com")
 	char m_rgchPassword[64];	// server password, if any
 };
@@ -423,7 +424,6 @@ struct GameLobbyJoinRequested_t
 struct AvatarImageLoaded_t
 {
 	enum { k_iCallback = k_iSteamFriendsCallbacks + 34 };
-
 	CSteamID m_steamID; // steamid the avatar has been loaded for
 	int m_iImage; // the image index of the now loaded image
 	int m_iWide; // width of the loaded image
@@ -437,11 +437,11 @@ struct AvatarImageLoaded_t
 struct ClanOfficerListResponse_t
 {
 	enum { k_iCallback = k_iSteamFriendsCallbacks + 35 };
-
 	CSteamID m_steamIDClan;
 	int m_cOfficers;
 	uint8 m_bSuccess;
 };
+
 
 //-----------------------------------------------------------------------------
 // Purpose: callback indicating updated data about friends rich presence information
@@ -449,10 +449,10 @@ struct ClanOfficerListResponse_t
 struct FriendRichPresenceUpdate_t
 {
 	enum { k_iCallback = k_iSteamFriendsCallbacks + 36 };
-
 	CSteamID m_steamIDFriend;	// friend who's rich presence has changed
 	AppId_t m_nAppID;			// the appID of the game (should always be the current game)
 };
+
 
 //-----------------------------------------------------------------------------
 // Purpose: called when the user tries to join a game from their friends list
@@ -461,10 +461,10 @@ struct FriendRichPresenceUpdate_t
 struct GameRichPresenceJoinRequested_t
 {
 	enum { k_iCallback = k_iSteamFriendsCallbacks + 37 };
-
 	CSteamID m_steamIDFriend;		// the friend they did the join via (will be invalid if not directly via a friend)
 	char m_rgchConnect[k_cchMaxRichPresenceValueLength];
 };
+
 
 //-----------------------------------------------------------------------------
 // Purpose: a chat message has been received for a clan chat the game has joined
@@ -472,11 +472,11 @@ struct GameRichPresenceJoinRequested_t
 struct GameConnectedClanChatMsg_t
 {
 	enum { k_iCallback = k_iSteamFriendsCallbacks + 38 };
-
 	CSteamID m_steamIDClanChat;
 	CSteamID m_steamIDUser;
 	int m_iMessageID;
 };
+
 
 //-----------------------------------------------------------------------------
 // Purpose: a user has joined a clan chat
@@ -484,10 +484,10 @@ struct GameConnectedClanChatMsg_t
 struct GameConnectedChatJoin_t
 {
 	enum { k_iCallback = k_iSteamFriendsCallbacks + 39 };
-
 	CSteamID m_steamIDClanChat;
 	CSteamID m_steamIDUser;
 };
+
 
 //-----------------------------------------------------------------------------
 // Purpose: a user has left the chat we're in
@@ -495,12 +495,12 @@ struct GameConnectedChatJoin_t
 struct GameConnectedChatLeave_t
 {
 	enum { k_iCallback = k_iSteamFriendsCallbacks + 40 };
-
 	CSteamID m_steamIDClanChat;
 	CSteamID m_steamIDUser;
 	bool m_bKicked;		// true if admin kicked
 	bool m_bDropped;	// true if Steam connection dropped
 };
+
 
 //-----------------------------------------------------------------------------
 // Purpose: a DownloadClanActivityCounts() call has finished
@@ -508,9 +508,9 @@ struct GameConnectedChatLeave_t
 struct DownloadClanActivityCountsResult_t
 {
 	enum { k_iCallback = k_iSteamFriendsCallbacks + 41 };
-
 	bool m_bSuccess;
 };
+
 
 //-----------------------------------------------------------------------------
 // Purpose: a JoinClanChatRoom() call has finished
@@ -518,7 +518,6 @@ struct DownloadClanActivityCountsResult_t
 struct JoinClanChatRoomCompletionResult_t
 {
 	enum { k_iCallback = k_iSteamFriendsCallbacks + 42 };
-
 	CSteamID m_steamIDClanChat;
 	EChatRoomEnterResponse m_eChatRoomEnterResponse;
 };
@@ -529,37 +528,36 @@ struct JoinClanChatRoomCompletionResult_t
 struct GameConnectedFriendChatMsg_t
 {
 	enum { k_iCallback = k_iSteamFriendsCallbacks + 43 };
-
 	CSteamID m_steamIDUser;
 	int m_iMessageID;
 };
 
+
 struct FriendsGetFollowerCount_t
 {
 	enum { k_iCallback = k_iSteamFriendsCallbacks + 44 };
-
 	EResult m_eResult;
 	CSteamID m_steamID;
-	int32 m_cCount;
+	int m_nCount;
 };
+
 
 struct FriendsIsFollowing_t
 {
 	enum { k_iCallback = k_iSteamFriendsCallbacks + 45 };
-
 	EResult m_eResult;
 	CSteamID m_steamID;
 	bool m_bIsFollowing;
 };
 
+
 struct FriendsEnumerateFollowingList_t
 {
 	enum { k_iCallback = k_iSteamFriendsCallbacks + 46 };
-
 	EResult m_eResult;
-	CSteamID m_steamIDs[ k_cEnumerateFollowersMax ];
-	int32 m_cSteamIDs;
-	int32 m_cTotalResults;
+	CSteamID m_rgSteamID[ k_cEnumerateFollowersMax ];
+	int32 m_nResultsReturned;
+	int32 m_nTotalResultCount;
 };
 
 //-----------------------------------------------------------------------------

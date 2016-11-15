@@ -26,7 +26,7 @@
 abstract_class ISteamRemoteStorage001
 {
 public:
-	virtual bool FileWrite( const char *filename, void  const *data, int ) = 0;
+	virtual bool FileWrite( const char *pchFile, void  const *pvData, int cubData) = 0;
 
 	virtual uint32 GetFileSize( const char *filename ) = 0;
 

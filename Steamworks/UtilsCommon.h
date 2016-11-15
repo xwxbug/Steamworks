@@ -31,7 +31,7 @@
 #define STEAMUTILS_INTERFACE_VERSION_005 "SteamUtils005"
 #define STEAMUTILS_INTERFACE_VERSION_006 "SteamUtils006"
 #define STEAMUTILS_INTERFACE_VERSION_007 "SteamUtils007"
-
+#define STEAMUTILS_INTERFACE_VERSION_008 "SteamUtils008"
 
 
 // Steam API call failure results
@@ -120,11 +120,6 @@ enum EWindowType
 	// TODO: Reverse this enum
 };
 
-enum EGameLaunchMethod
-{
-	// TODO: Reverse this enum
-};
-
 #pragma pack( push, 8 )
 //-----------------------------------------------------------------------------
 // Purpose: The country of the user changed
@@ -153,6 +148,8 @@ struct SteamAPICallCompleted_t
 	enum { k_iCallback = k_iSteamUtilsCallbacks + 3 };
 
 	SteamAPICall_t m_hAsyncCall;
+	int m_iCallback;
+	uint32 m_cubParam;
 };
 
 

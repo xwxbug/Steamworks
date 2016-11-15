@@ -38,6 +38,8 @@ class IVAC;
 class ISteamNetworking;
 class ISteamRemoteStorage;
 class ISteamGameServerItems;
+class ISteamMusic;
+class ISteamMusicRemote;
 class ISteamGameServerStats;
 class ISteamPS3OverlayRender;
 class ISteamHTTP;
@@ -46,12 +48,13 @@ class ISteamUnifiedMessages;
 class ISteamController;
 class ISteamUGC;
 class ISteamAppList;
-class ISteamMusic;
-class ISteamMusicRemote;
 class ISteamHTMLSurface;
 class ISteamInventory;
 class ISteamVideo;
 
+extern "C" typedef void		( *SteamAPIWarningMessageHook_t)(int, const char *);
+extern "C" typedef void		( *SteamAPI_PostAPIResultInProcess_t )(SteamAPICall_t callHandle, void *, uint32 unCallbackSize, int iCallbackNum);
+extern "C" typedef uint32	( *SteamAPI_CheckCallbackRegistered_t )( int iCallbackNum );
 
 #define CLIENTENGINE_INTERFACE_VERSION "CLIENTENGINE_INTERFACE_VERSION004"
 

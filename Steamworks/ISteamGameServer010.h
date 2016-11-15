@@ -21,6 +21,7 @@
 #endif
 
 #include "SteamTypes.h"
+#include "UserCommon.h"
 #include "GameServerCommon.h"
 
 //-----------------------------------------------------------------------------

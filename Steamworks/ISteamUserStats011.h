@@ -72,19 +72,23 @@ public:
 
 	// Achievement / GroupAchievement metadata
 
-	// Gets the icon of the achievement, which is a handle to be used in IClientUtils::GetImageRGBA(), or 0 if none set. 
+	// Gets the icon of the achievement, which is a handle to be used in ISteamUtils::GetImageRGBA(), or 0 if none set. 
 	// A return value of 0 may indicate we are still fetching data, and you can wait for the UserAchievementIconFetched_t callback
 	// which will notify you when the bits are ready. If the callback still returns zero, then there is no image set for the
 	// specified achievement.
 	virtual int GetAchievementIcon( const char *pchName ) = 0;
-	// Get general attributes (display name, desc, etc) for an Achievement
+
+	// Get general attributes for an achievement. Accepts the following keys:
+	// - "name" and "desc" for retrieving the localized achievement name and description (returned in UTF8)
+	// - "hidden" for retrieving if an achievement is hidden (returns "0" when not hidden, "1" when hidden)
 	virtual const char *GetAchievementDisplayAttribute( const char *pchName, const char *pchKey ) = 0;
 
 	// Achievement progress - triggers an AchievementProgress callback, that is all.
 	// Calling this w/ N out of N progress will NOT set the achievement, the game must still do that.
 	virtual bool IndicateAchievementProgress( const char *pchName, uint32 nCurProgress, uint32 nMaxProgress ) = 0;
 
-	// Get the number of achievements
+	// Used for iterating achievements. In general games should not need these functions because they should have a
+	// list of existing achievements compiled into them
 	virtual uint32 GetNumAchievements() = 0;
 	// Get achievement name iAchievement in [0,GetNumAchievements)
 	virtual const char *GetAchievementName( uint32 iAchievement ) = 0;

@@ -1,16 +1,6 @@
-//==========================  Open Steamworks  ================================
+//====== Copyright ?1996-2014 Valve Corporation, All rights reserved. =======
 //
-// This file is part of the Open Steamworks project. All individuals associated
-// with this project do not claim ownership of the contents
-// 
-// The code, comments, and all related files, projects, resources,
-// redistributables included with this project are Copyright Valve Corporation.
-// Additionally, Valve, the Valve logo, Half-Life, the Half-Life logo, the
-// Lambda logo, Steam, the Steam logo, Team Fortress, the Team Fortress logo,
-// Opposing Force, Day of Defeat, the Day of Defeat logo, Counter-Strike, the
-// Counter-Strike logo, Source, the Source logo, and Counter-Strike Condition
-// Zero are trademarks and or registered trademarks of Valve Corporation.
-// All other trademarks are property of their respective owners.
+// Purpose: interface to Steam Inventory
 //
 //=============================================================================
 
@@ -38,7 +28,7 @@
 // and will not be transferred to another player or re-used for another item.
 typedef uint64 SteamItemInstanceID_t;
 
-static const SteamItemInstanceID_t k_SteamItemInstanceIDInvalid = ~(SteamItemInstanceID_t)0;
+static const SteamItemInstanceID_t k_SteamItemInstanceIDInvalid = (SteamItemInstanceID_t)~0;
 
 // Types of items in your game are identified by a 32-bit "item definition number".
 // Valid definition numbers are between 1 and 999999999; numbers less than or equal to

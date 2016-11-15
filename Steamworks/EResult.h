@@ -124,6 +124,12 @@ typedef enum EResult
 	k_EResultRefundToWallet = 98,				// Cannot refund to payment method, must use wallet
 	k_EResultEmailSendFailure = 99,				// Cannot send an email
 	k_EResultNotSettled = 100,					// Can't perform operation till payment has settled
+	k_EResultNeedCaptcha = 101,					// Needs to provide a valid captcha
+	k_EResultGSLTDenied = 102,					// a game server login token owned by this token's owner has been banned
+	k_EResultGSOwnerDenied = 103,				// game server owner is denied for other reason (account lock, community ban, vac ban, missing phone)
+	k_EResultInvalidItemType = 104,				// the type of thing we were requested to act on is invalid
+	k_EResultIPBanned = 105,					// the ip address has been banned from taking this action
+	k_EResultGSLTExpired = 106,					// this token has expired from disuse; can be reset for use
 } EResult;
 
 #endif // ERESULT_H

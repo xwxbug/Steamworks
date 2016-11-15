@@ -22,6 +22,7 @@
 
 #include "SteamTypes.h"
 #include "GameServerCommon.h"
+#include "ContentServerCommon.h"
 #include "UserCommon.h"
 
 

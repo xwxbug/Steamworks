@@ -1,16 +1,6 @@
-//==========================  Open Steamworks  ================================
+//====== Copyright 1996-2008, Valve Corporation, All rights reserved. =======
 //
-// This file is part of the Open Steamworks project. All individuals associated
-// with this project do not claim ownership of the contents
-// 
-// The code, comments, and all related files, projects, resources,
-// redistributables included with this project are Copyright Valve Corporation.
-// Additionally, Valve, the Valve logo, Half-Life, the Half-Life logo, the
-// Lambda logo, Steam, the Steam logo, Team Fortress, the Team Fortress logo,
-// Opposing Force, Day of Defeat, the Day of Defeat logo, Counter-Strike, the
-// Counter-Strike logo, Source, the Source logo, and Counter-Strike Condition
-// Zero are trademarks and or registered trademarks of Valve Corporation.
-// All other trademarks are property of their respective owners.
+// Purpose: interface to utility functions in Steam
 //
 //=============================================================================
 
@@ -26,7 +16,7 @@
 //-----------------------------------------------------------------------------
 // Purpose: interface to user independent utility functions
 //-----------------------------------------------------------------------------
-abstract_class ISteamUtils007
+class ISteamUtils007
 {
 public:
 	// return the number of seconds since the user 
@@ -101,6 +91,7 @@ public:
 	// refresh the screen with Present or SwapBuffers to allow the overlay to do it's work.
 	virtual bool BOverlayNeedsPresent() = 0;
 
+#ifndef _PS3
 	// Asynchronous call to check if an executable file has been signed using the public key set on the signing tab
 	// of the partner site, for example to refuse to load modified executable files.  
 	// The result is returned in CheckFileSignature_t.
@@ -110,16 +101,33 @@ public:
 	//   k_ECheckFileSignatureInvalidSignature - The file exists, and the signing tab has been set for this file, but the file is either not signed or the signature does not match.
 	//   k_ECheckFileSignatureValidSignature - The file is signed and the signature is valid.
 	virtual SteamAPICall_t CheckFileSignature( const char *szFileName ) = 0;
-	
-	virtual bool ShowGamepadTextInput(EGamepadTextInputMode eInputMode, EGamepadTextInputLineMode eInputLineMode, const char *pchDescription, uint32 unCharMax, const char * pchExistingText) = 0;
-	virtual uint32 GetEnteredGamepadTextLength() = 0;
-	virtual bool GetEnteredGamepadTextInput( char *pchValue, uint32 cchValueMax ) = 0;
+#endif
 
+#ifdef _PS3
+	virtual void PostPS3SysutilCallback( uint64_t status, uint64_t param, void* userdata ) = 0;
+	virtual bool BIsReadyToShutdown() = 0;
+	virtual bool BIsPSNOnline() = 0;
+
+	// Call this with localized strings for the language the game is running in, otherwise default english
+	// strings will be used by Steam.
+	virtual void SetPSNGameBootInviteStrings( const char *pchSubject, const char *pchBody ) = 0;
+#endif
+
+	// Activates the Big Picture text input dialog which only supports gamepad input
+	virtual bool ShowGamepadTextInput( EGamepadTextInputMode eInputMode, EGamepadTextInputLineMode eLineInputMode, const char *pchDescription, uint32 unCharMax, const char *pchExistingText ) = 0;
+
+	// Returns previously entered text & length
+	virtual uint32 GetEnteredGamepadTextLength() = 0;
+	virtual bool GetEnteredGamepadTextInput( char *pchText, uint32 cchText ) = 0;
+
+	// returns the language the steam client is running in, you probably want ISteamApps::GetCurrentGameLanguage instead, this is for very special usage cases
 	virtual const char *GetSteamUILanguage() = 0;
 
+	// returns true if Steam itself is running in VR mode
 	virtual bool IsSteamRunningInVR() = 0;
-
-	virtual void SetOverlayNotificationInset( int32, int32 ) = 0;
+	
+	// Sets the inset of the overlay notification from the corner specified by SetOverlayNotificationPosition.
+	virtual void SetOverlayNotificationInset( int nHorizontalInset, int nVerticalInset ) = 0;
 };
 
-#endif // ISTEAMUTILS007_H
+#endif // ISTEAMUTILS006_H

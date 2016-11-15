@@ -19,7 +19,7 @@
 #ifdef _WIN32
 #pragma once
 #endif
-
+#include "SteamTypes.h"
 
 
 #define STEAMUSERSTATS_INTERFACE_VERSION_001 "STEAMUSERSTATS_INTERFACE_VERSION001"
@@ -244,7 +244,7 @@ struct UserAchievementIconFetched_t
 	CGameID		m_nGameID;				// Game this is for
 	char		m_rgchAchievementName[k_cchStatNameMax];		// name of the achievement
 	bool		m_bAchieved;		// Is the icon for the achieved or not achieved version?
-	int			m_nIconHandle;		// Handle to the image, which can be used in ClientUtils()->GetImageRGBA(), 0 means no image is set for the achievement
+	int			m_nIconHandle;		// Handle to the image, which can be used in SteamUtils()->GetImageRGBA(), 0 means no image is set for the achievement
 };
 
 //-----------------------------------------------------------------------------
@@ -258,16 +258,17 @@ struct GlobalAchievementPercentagesReady_t
 	EResult		m_eResult;				// Result of the operation
 };
 
+
 //-----------------------------------------------------------------------------
 // Purpose: call result indicating UGC has been uploaded, returned as a result of SetLeaderboardUGC()
 //-----------------------------------------------------------------------------
 struct LeaderboardUGCSet_t
 {
 	enum { k_iCallback = k_iSteamUserStatsCallbacks + 11 };
-
 	EResult m_eResult;				// The result of the operation
 	SteamLeaderboard_t m_hSteamLeaderboard;	// the leaderboard handle that was
 };
+
 
 //-----------------------------------------------------------------------------
 // Purpose: callback indicating global stats have been received.
@@ -276,7 +277,6 @@ struct LeaderboardUGCSet_t
 struct GlobalStatsReceived_t
 {
 	enum { k_iCallback = k_iSteamUserStatsCallbacks + 12 };
-
 	uint64	m_nGameID;				// Game global stats were requested for
 	EResult	m_eResult;				// The result of the request
 };

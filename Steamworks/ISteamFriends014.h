@@ -1,16 +1,6 @@
-//==========================  Open Steamworks  ================================
+//====== Copyright (C) 1996-2008, Valve Corporation, All rights reserved. =====
 //
-// This file is part of the Open Steamworks project. All individuals associated
-// with this project do not claim ownership of the contents
-// 
-// The code, comments, and all related files, projects, resources,
-// redistributables included with this project are Copyright Valve Corporation.
-// Additionally, Valve, the Valve logo, Half-Life, the Half-Life logo, the
-// Lambda logo, Steam, the Steam logo, Team Fortress, the Team Fortress logo,
-// Opposing Force, Day of Defeat, the Day of Defeat logo, Counter-Strike, the
-// Counter-Strike logo, Source, the Source logo, and Counter-Strike Condition
-// Zero are trademarks and or registered trademarks of Valve Corporation.
-// All other trademarks are property of their respective owners.
+// Purpose: interface to both friends list data and general information about users
 //
 //=============================================================================
 
@@ -28,7 +18,7 @@
 // Purpose: interface to accessing information about individual users,
 //			that can be a friend, in a group, on a game server or in a lobby with the local user
 //-----------------------------------------------------------------------------
-abstract_class ISteamFriends014
+class ISteamFriends014
 {
 public:
 	// returns the local players name - guaranteed to not be NULL.
@@ -38,7 +28,13 @@ public:
 	// off; it will eventually be free'd or re-allocated
 	virtual const char *GetPersonaName() = 0;
 
-	// sets the player name, stores it on the server and publishes the changes to all friends who are online
+	// Sets the player name, stores it on the server and publishes the changes to all friends who are online.
+	// Changes take place locally immediately, and a PersonaStateChange_t is posted, presuming success.
+	//
+	// The final results are available through the return value SteamAPICall_t, using SetPersonaNameResponse_t.
+	//
+	// If the name change fails to happen on the server, then an additional global PersonaStateChange_t will be posted
+	// to change the name back, in addition to the SetPersonaNameResponse_t callback.
 	virtual SteamAPICall_t SetPersonaName( const char *pchPersonaName ) = 0;
 
 	// gets the status of the current user
@@ -53,7 +49,7 @@ public:
 	// iFriend is a index of range [0, GetFriendCount())
 	// iFriendsFlags must be the same value as used in GetFriendCount()
 	// the returned CSteamID can then be used by all the functions below to access details about the user
-	STEAMWORKS_STRUCT_RETURN_2(CSteamID, GetFriendByIndex, int, iFriend, int, iFriendFlags) /*virtual CSteamID GetFriendByIndex( int iFriend, int iFriendFlags ) = 0;*/
+	virtual CSteamID GetFriendByIndex( int iFriend, int iFriendFlags ) = 0;
 
 	// returns a relationship to a user
 	virtual EFriendRelationship GetFriendRelationship( CSteamID steamIDFriend ) = 0;
@@ -72,7 +68,8 @@ public:
 	virtual bool GetFriendGamePlayed( CSteamID steamIDFriend, FriendGameInfo_t *pFriendGameInfo ) = 0;
 	// accesses old friends names - returns an empty string when their are no more items in the history
 	virtual const char *GetFriendPersonaNameHistory( CSteamID steamIDFriend, int iPersonaName ) = 0;
-	
+
+	// Returns nickname the current user has set for the specified player. Returns NULL if the no nickname has been set for that player.
 	virtual const char *GetPlayerNickname( CSteamID steamIDPlayer ) = 0;
 
 	// returns true if the specified user meets any of the criteria specified in iFriendFlags
@@ -81,18 +78,20 @@ public:
 
 	// clan (group) iteration and access functions
 	virtual int GetClanCount() = 0;
-	STEAMWORKS_STRUCT_RETURN_1(CSteamID, GetClanByIndex, int, iClan) /*virtual CSteamID GetClanByIndex( int iClan ) = 0;*/
+	virtual CSteamID GetClanByIndex( int iClan ) = 0;
 	virtual const char *GetClanName( CSteamID steamIDClan ) = 0;
 	virtual const char *GetClanTag( CSteamID steamIDClan ) = 0;
-
-	virtual bool GetClanActivityCounts( CSteamID steamID, int *pnOnline, int *pnInGame, int *pnChatting ) = 0;
-	virtual SteamAPICall_t DownloadClanActivityCounts( CSteamID groupIDs[], int nIds ) = 0;
+	// returns the most recent information we have about what's happening in a clan
+	virtual bool GetClanActivityCounts( CSteamID steamIDClan, int *pnOnline, int *pnInGame, int *pnChatting ) = 0;
+	// for clans a user is a member of, they will have reasonably up-to-date information, but for others you'll have to download the info to have the latest
+	virtual SteamAPICall_t DownloadClanActivityCounts( CSteamID *psteamIDClans, int cClansToRequest ) = 0;
 
 	// iterators for getting users in a chat room, lobby, game server or clan
 	// note that large clans that cannot be iterated by the local user
+	// note that the current user must be in a lobby to retrieve CSteamIDs of other users in that lobby
 	// steamIDSource can be the steamID of a group, game server, lobby or chat room
 	virtual int GetFriendCountFromSource( CSteamID steamIDSource ) = 0;
-	STEAMWORKS_STRUCT_RETURN_2(CSteamID, GetFriendFromSourceByIndex, CSteamID, steamIDSource, int, iFriend) /*virtual CSteamID GetFriendFromSourceByIndex( CSteamID steamIDSource, int iFriend ) = 0;*/
+	virtual CSteamID GetFriendFromSourceByIndex( CSteamID steamIDSource, int iFriend ) = 0;
 
 	// returns true if the local user can see that steamIDUser is a member or in steamIDSource
 	virtual bool IsUserInSource( CSteamID steamIDUser, CSteamID steamIDSource ) = 0;
@@ -101,15 +100,20 @@ public:
 	virtual void SetInGameVoiceSpeaking( CSteamID steamIDUser, bool bSpeaking ) = 0;
 
 	// activates the game overlay, with an optional dialog to open 
-	// valid options are "Friends", "Community", "Players", "Settings", "LobbyInvite", "OfficialGameGroup", "Stats", "Achievements"
+	// valid options are "Friends", "Community", "Players", "Settings", "OfficialGameGroup", "Stats", "Achievements"
 	virtual void ActivateGameOverlay( const char *pchDialog ) = 0;
 
 	// activates game overlay to a specific place
 	// valid options are
 	//		"steamid" - opens the overlay web browser to the specified user or groups profile
 	//		"chat" - opens a chat window to the specified user, or joins the group chat 
+	//		"jointrade" - opens a window to a Steam Trading session that was started with the ISteamEconomy/StartTrade Web API
 	//		"stats" - opens the overlay web browser to the specified user's stats
 	//		"achievements" - opens the overlay web browser to the specified user's achievements
+	//		"friendadd" - opens the overlay in minimal mode prompting the user to add the target user as a friend
+	//		"friendremove" - opens the overlay in minimal mode prompting the user to remove the target friend
+	//		"friendrequestaccept" - opens the overlay in minimal mode prompting the user to accept an incoming friend invite
+	//		"friendrequestignore" - opens the overlay in minimal mode prompting the user to ignore an incoming friend invite
 	virtual void ActivateGameOverlayToUser( const char *pchDialog, CSteamID steamID ) = 0;
 
 	// activates game overlay web browser directly to the specified URL
@@ -153,13 +157,13 @@ public:
 	virtual SteamAPICall_t RequestClanOfficerList( CSteamID steamIDClan ) = 0;
 
 	// iteration of clan officers - can only be done when a RequestClanOfficerList() call has completed
-
+	
 	// returns the steamID of the clan owner
-	STEAMWORKS_STRUCT_RETURN_1(CSteamID, GetClanOwner, CSteamID, steamIDClan) /*virtual CSteamID GetClanOwner( CSteamID steamIDClan ) = 0;*/
+	virtual CSteamID GetClanOwner( CSteamID steamIDClan ) = 0;
 	// returns the number of officers in a clan (including the owner)
 	virtual int GetClanOfficerCount( CSteamID steamIDClan ) = 0;
 	// returns the steamID of a clan officer, by index, of range [0,GetClanOfficerCount)
-	STEAMWORKS_STRUCT_RETURN_2(CSteamID, GetClanOfficerByIndex, CSteamID, steamIDClan, int, iOfficer) /*virtual CSteamID GetClanOfficerByIndex( CSteamID steamIDClan, int iOfficer ) = 0;*/
+	virtual CSteamID GetClanOfficerByIndex( CSteamID steamIDClan, int iOfficer ) = 0;
 	// if current user is chat restricted, he can't send or receive any text/voice chat messages.
 	// the user can't see custom avatars. But the user can be online and send/recv game invites.
 	// a chat restricted user can't add friends or join any groups.
@@ -180,6 +184,7 @@ public:
 	virtual const char *GetFriendRichPresence( CSteamID steamIDFriend, const char *pchKey ) = 0;
 	virtual int GetFriendRichPresenceKeyCount( CSteamID steamIDFriend ) = 0;
 	virtual const char *GetFriendRichPresenceKeyByIndex( CSteamID steamIDFriend, int iKey ) = 0;
+	// Requests rich presence for a specific user.
 	virtual void RequestFriendRichPresence( CSteamID steamIDFriend ) = 0;
 
 	// rich invite support
@@ -192,7 +197,7 @@ public:
 	// this iterates the entire list of users recently played with, across games
 	// GetFriendCoplayTime() returns as a unix time
 	virtual int GetCoplayFriendCount() = 0;
-	STEAMWORKS_STRUCT_RETURN_1(CSteamID, GetCoplayFriend, int, iCoplayFriend) /*virtual CSteamID GetCoplayFriend( int iCoplayFriend ) = 0;*/
+	virtual CSteamID GetCoplayFriend( int iCoplayFriend ) = 0;
 	virtual int GetFriendCoplayTime( CSteamID steamIDFriend ) = 0;
 	virtual AppId_t GetFriendCoplayGame( CSteamID steamIDFriend ) = 0;
 
@@ -203,16 +208,16 @@ public:
 	virtual SteamAPICall_t JoinClanChatRoom( CSteamID steamIDClan ) = 0;
 	virtual bool LeaveClanChatRoom( CSteamID steamIDClan ) = 0;
 	virtual int GetClanChatMemberCount( CSteamID steamIDClan ) = 0;
-	STEAMWORKS_STRUCT_RETURN_2(CSteamID, GetChatMemberByIndex, CSteamID, steamIDClan, int, iUser) /*virtual CSteamID GetChatMemberByIndex( CSteamID steamIDClan, int iUser ) = 0;*/
+	virtual CSteamID GetChatMemberByIndex( CSteamID steamIDClan, int iUser ) = 0;
 	virtual bool SendClanChatMessage( CSteamID steamIDClanChat, const char *pchText ) = 0;
-	virtual int GetClanChatMessage( CSteamID steamIDClanChat, int iMessage, void *prgchText, int cchTextMax, EChatEntryType *peChatEntryType, CSteamID *pSteamIDChatter ) = 0;
+	virtual int GetClanChatMessage( CSteamID steamIDClanChat, int iMessage, void *prgchText, int cchTextMax, EChatEntryType *peChatEntryType, CSteamID *psteamidChatter ) = 0;
 	virtual bool IsClanChatAdmin( CSteamID steamIDClanChat, CSteamID steamIDUser ) = 0;
-	
+
 	// interact with the Steam (game overlay / desktop)
 	virtual bool IsClanChatWindowOpenInSteam( CSteamID steamIDClanChat ) = 0;
 	virtual bool OpenClanChatWindowInSteam( CSteamID steamIDClanChat ) = 0;
 	virtual bool CloseClanChatWindowInSteam( CSteamID steamIDClanChat ) = 0;
-	
+
 	// peer-to-peer chat interception
 	// this is so you can show P2P chats inline in the game
 	virtual bool SetListenForFriendsMessages( bool bInterceptEnabled ) = 0;

@@ -111,12 +111,17 @@ public:
 	//   k_ECheckFileSignatureValidSignature - The file is signed and the signature is valid.
 	virtual SteamAPICall_t CheckFileSignature( const char *szFileName ) = 0;
 	
-	virtual bool ShowGamepadTextInput( EGamepadTextInputMode eInputMode, EGamepadTextInputLineMode eInputLineMode, const char *szText, uint32 uMaxLength ) = 0;
+	// Activates the Big Picture text input dialog which only supports gamepad input
+	virtual bool ShowGamepadTextInput( EGamepadTextInputMode eInputMode, EGamepadTextInputLineMode eLineInputMode, const char *pchDescription, uint32 unCharMax ) = 0;
+
+	// Returns previously entered text & length
 	virtual uint32 GetEnteredGamepadTextLength() = 0;
 	virtual bool GetEnteredGamepadTextInput( char *pchValue, uint32 cchValueMax ) = 0;
 
-	virtual const char *GetSteamUILanguage() = 0;
+	// returns the language the steam client is running in, you probably want ISteamApps::GetCurrentGameLanguage instead, this is for very special usage cases
+	virtual const char *GetSteamUILanguage() = 0;;
 
+	// returns true if Steam itself is running in VR mode
 	virtual bool IsSteamRunningInVR() = 0;
 };
 

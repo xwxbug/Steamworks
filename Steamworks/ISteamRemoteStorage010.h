@@ -68,12 +68,23 @@ public:
 	virtual void SetCloudEnabledForApp( bool bEnabled ) = 0;
 
 	// user generated content
+
+	// Downloads a UGC file.  A priority value of 0 will download the file immediately,
+	// otherwise it will wait to download the file until all downloads with a lower priority
+	// value are completed.  Downloads with equal priority will occur simultaneously.
 	virtual SteamAPICall_t UGCDownload( UGCHandle_t hContent, uint32 uUnk ) = 0; // Returns a RemoteStorageDownloadUGCResult_t callback
+
+	// Gets the amount of data downloaded so far for a piece of content. pnBytesExpected can be 0 if function returns false
+	// or if the transfer hasn't started yet, so be careful to check for that before dividing to get a percentage
 	virtual bool GetUGCDownloadProgress( UGCHandle_t hContent, uint32 *puDownloadedBytes, uint32 *puTotalBytes ) = 0;
+
+	// Gets metadata for a file after it has been downloaded. This is the same metadata given in the RemoteStorageDownloadUGCResult_t call result
 	virtual bool	GetUGCDetails( UGCHandle_t hContent, AppId_t *pnAppID, char **ppchName, int32 *pnFileSizeInBytes, CSteamID *pSteamIDOwner ) = 0;
+
+	// After download, gets the content of the file
 	virtual int32	UGCRead( UGCHandle_t hContent, void *pvData, int32 cubDataToRead, uint32 uOffset ) = 0;
 
-	// user generated content iteration
+	// Functions to iterate through UGC that has finished downloading but has not yet been read via UGCRead()
 	virtual int32	GetCachedUGCCount() = 0;
 	virtual UGCHandle_t GetCachedUGCHandle( int32 iCachedContent ) = 0;
 
@@ -90,6 +101,7 @@ public:
 
 	virtual SteamAPICall_t GetPublishedFileDetails( PublishedFileId_t unPublishedFileId ) = 0;
 	virtual SteamAPICall_t DeletePublishedFile( PublishedFileId_t unPublishedFileId ) = 0;
+	// enumerate the files that the current user published with this app
 	virtual SteamAPICall_t EnumerateUserPublishedFiles( uint32 uStartIndex ) = 0;
 	virtual SteamAPICall_t SubscribePublishedFile( PublishedFileId_t unPublishedFileId ) = 0;
 	virtual SteamAPICall_t EnumerateUserSubscribedFiles( uint32 uStartIndex ) = 0;
@@ -103,6 +115,7 @@ public:
 	virtual SteamAPICall_t PublishVideo( EWorkshopVideoProvider eVideoProvider, const char *cszVideoAccountName, const char *cszVideoIdentifier, const char *cszFileName, AppId_t nConsumerAppId, const char *cszTitle, const char *cszDescription, ERemoteStoragePublishedFileVisibility eVisibility, SteamParamStringArray_t *pTags ) = 0;
 	virtual SteamAPICall_t SetUserPublishedFileAction( PublishedFileId_t unPublishedFileId, EWorkshopFileAction eAction ) = 0;
 	virtual SteamAPICall_t EnumeratePublishedFilesByUserAction( EWorkshopFileAction eAction, uint32 uStartIndex ) = 0;
+	// this method enumerates the public view of workshop files
 	virtual SteamAPICall_t EnumeratePublishedWorkshopFiles( EWorkshopEnumerationType eType, uint32 uStartIndex, uint32 cDays, uint32 cCount, SteamParamStringArray_t *pTags, SteamParamStringArray_t *pUserTags ) = 0;
 	
 	virtual SteamAPICall_t UGCDownloadToLocation( UGCHandle_t hContent, const char *cszLocation, uint32 uUnk ) = 0;

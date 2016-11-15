@@ -21,6 +21,7 @@
 #endif
 
 #include "SteamTypes.h"
+#include "UserCommon.h"
 #include "GameServerCommon.h"
 
 //-----------------------------------------------------------------------------
@@ -34,26 +35,26 @@ public:
 // Basic server data.  These properties, if set, must be set before before calling LogOn.  They
 // may not be changed after logged in.
 //
-	
+
 	/// This is called by SteamGameServer_Init, and you will usually not need to call it directly
 	virtual bool InitGameServer( uint32 unGameIP, uint16 unGamePort, uint16 usQueryPort, uint32 unServerFlags, AppId_t nAppID, const char *pchVersion ) = 0;
 	
 	/// Game product identifier.  This is currently used by the master server for version checking purposes.
 	/// It's a required field, but will eventually will go away, and the AppID will be used for this purpose.
-	virtual void SetProduct( const char *pchProductName ) = 0;
-	
+	virtual void SetProduct( const char *pszProduct ) = 0;
+
 	/// Description of the game.  This is a required field and is displayed in the steam server browser....for now.
 	/// This is a required field, but it will go away eventually, as the data should be determined from the AppID.
-	virtual void SetGameDescription( const char *pchGameDescription ) = 0;
-	
+	virtual void SetGameDescription( const char *pszGameDescription ) = 0;
+
 	/// If your game is a "mod," pass the string that identifies it.  The default is an empty string, meaning
 	/// this application is the original game, not a mod.
 	///
 	/// @see k_cbMaxGameServerGameDir
-	virtual void SetModDir( const char *pchModDir ) = 0;
-	
+	virtual void SetModDir( const char *pszModDir ) = 0;
+
 	/// Is this is a dedicated server?  The default value is false.
-	virtual void SetDedicatedServer( bool bDedicatedServer ) = 0;
+	virtual void SetDedicatedServer( bool bDedicated ) = 0;
 
 //
 // Login
@@ -79,7 +80,7 @@ public:
 	// status functions
 	virtual bool BLoggedOn() = 0;
 	virtual bool BSecure() = 0; 
-	STEAMWORKS_STRUCT_RETURN_0(CSteamID, GetSteamID) /*virtual CSteamID GetSteamID() = 0;*/
+	virtual CSteamID GetSteamID() = 0;
 
 	/// Returns true if the master server has requested a restart.
 	/// Only returns true once per request.
@@ -117,9 +118,9 @@ public:
 	/// @see k_cbMaxGameServerMapName
 	virtual void SetSpectatorServerName( const char *pszSpectatorServerName ) = 0;
 
-	/// Call this to add/update a key/value pair.
+	/// Call this to clear the whole list of key/values that are sent in rules queries.
 	virtual void ClearAllKeyValues() = 0;
-
+	
 	/// Call this to add/update a key/value pair.
 	virtual void SetKeyValue( const char *pKey, const char *pValue ) = 0;
 
@@ -127,7 +128,7 @@ public:
 	/// it allows users to filter in the matchmaking/server-browser interfaces based on the value
 	///
 	/// @see k_cbMaxGameServerTags
-	virtual void SetGameTags( const char *pchGameTags ) = 0; 
+	virtual void SetGameTags( const char *pchGameTags ) = 0;
 
 	/// Sets a string defining the "gamedata" for this server, this is optional, but if it is set
 	/// it allows users to filter in the matchmaking/server-browser interfaces based on the value
@@ -135,7 +136,7 @@ public:
 	/// acknowledged)
 	///
 	/// @see k_cbMaxGameServerGameData
-	virtual void SetGameData( const char *pchGameData ) = 0; 
+	virtual void SetGameData( const char *pchGameData ) = 0;
 
 	/// Region identifier.  This is an optional field, the default value is empty, meaning the "world" region
 	virtual void SetRegion( const char *pchRegionName ) = 0;
@@ -153,13 +154,13 @@ public:
 	// Return Value: returns true if the users ticket passes basic checks. pSteamIDUser will contain the Steam ID of this user. pSteamIDUser must NOT be NULL
 	// If the call succeeds then you should expect a GSClientApprove_t or GSClientDeny_t callback which will tell you whether authentication
 	// for the user has succeeded or failed (the steamid in the callback will match the one returned by this call)
-	virtual int SendUserConnectAndAuthenticate( uint32 unIPClient, const void *pvAuthBlob, uint32 cubAuthBlobSize, CSteamID *pSteamIDUser ) = 0;
+	virtual bool SendUserConnectAndAuthenticate( uint32 unIPClient, const void *pvAuthBlob, uint32 cubAuthBlobSize, CSteamID *pSteamIDUser ) = 0;
 
 	// Creates a fake user (ie, a bot) which will be listed as playing on the server, but skips validation.  
 	// 
 	// Return Value: Returns a SteamID for the user to be tracked with, you should call HandleUserDisconnect()
 	// when this user leaves the server just like you would for a real user.
-	STEAMWORKS_STRUCT_RETURN_0(CSteamID, CreateUnauthenticatedUserConnection) /*virtual CSteamID CreateUnauthenticatedUserConnection() = 0;*/
+	virtual CSteamID CreateUnauthenticatedUserConnection() = 0;
 
 	// Should be called whenever a user leaves our game server, this lets Steam internally
 	// track which users are currently on which servers for the purposes of preventing a single
@@ -226,7 +227,7 @@ public:
 	// 
 	// Source games use this to simplify the job of the server admins, so they 
 	// don't have to open up more ports on their firewalls.
-
+	
 	// Call this when a packet that starts with 0xFFFFFFFF comes in. That means
 	// it's for us.
 	virtual bool HandleIncomingPacket( const void *pData, int cbData, uint32 srcIP, uint16 srcPort ) = 0;
@@ -254,10 +255,11 @@ public:
 	virtual void ForceHeartbeat() = 0;
 
 	// associate this game server with this clan for the purposes of computing player compat
-	virtual SteamAPICall_t AssociateWithClan( CSteamID clanID ) = 0;
+	virtual SteamAPICall_t AssociateWithClan( CSteamID steamIDClan ) = 0;
 	
 	// ask if any of the current players dont want to play with this new player - or vice versa
-	virtual SteamAPICall_t ComputeNewPlayerCompatibility( CSteamID steamID ) = 0;
+	virtual SteamAPICall_t ComputeNewPlayerCompatibility( CSteamID steamIDNewPlayer ) = 0;
+
 };
 
 #endif // ISTEAMGAMESERVER011_H

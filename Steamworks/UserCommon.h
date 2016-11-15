@@ -39,6 +39,8 @@
 #define STEAMUSER_INTERFACE_VERSION_015 "SteamUser015"
 #define STEAMUSER_INTERFACE_VERSION_016 "SteamUser016"
 #define STEAMUSER_INTERFACE_VERSION_017 "SteamUser017"
+#define STEAMUSER_INTERFACE_VERSION_018 "SteamUser018"
+#define STEAMUSER_INTERFACE_VERSION_019 "SteamUser019"
 
 // Callback values for callback ValidateAuthTicketResponse_t which is a response to BeginAuthSession
 typedef enum EAuthSessionResponse
@@ -261,9 +263,10 @@ struct SteamServersConnected_t
 struct SteamServerConnectFailure_t
 {
 	enum { k_iCallback = k_iSteamUserCallbacks + 2 };
-
 	EResult m_eResult;
+	bool m_bStillRetrying;
 };
+
 
 //-----------------------------------------------------------------------------
 // Purpose: called if the client has lost connection to the Steam servers
@@ -328,6 +331,10 @@ struct IPCFailure_t
 	uint8 m_eFailureType;
 };
 
+
+//-----------------------------------------------------------------------------
+// Purpose: Signaled whenever licenses change
+//-----------------------------------------------------------------------------
 struct LicensesUpdated_t
 {
 	enum { k_iCallback = k_iSteamUserCallbacks + 25 };
@@ -355,10 +362,11 @@ struct OBSOLETE_CALLBACK DRMSDKFileTransferResult_t
 struct ValidateAuthTicketResponse_t
 {
 	enum { k_iCallback = k_iSteamUserCallbacks + 43 };
-
 	CSteamID m_SteamID;
 	EAuthSessionResponse m_eAuthSessionResponse;
+	CSteamID m_OwnerSteamID; // different from m_SteamID if borrowed
 };
+
 
 //-----------------------------------------------------------------------------
 // Purpose: called when a user has responded to a microtransaction authorization request
@@ -366,11 +374,12 @@ struct ValidateAuthTicketResponse_t
 struct MicroTxnAuthorizationResponse_t
 {
 	enum { k_iCallback = k_iSteamUserCallbacks + 52 };
-
+	
 	uint32 m_unAppID;			// AppID for this microtransaction
 	uint64 m_ulOrderID;			// OrderID provided for the microtransaction
 	uint8 m_bAuthorized;		// if user authorized transaction
 };
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Result from RequestEncryptedAppTicket
@@ -388,12 +397,28 @@ struct EncryptedAppTicketResponse_t
 struct GetAuthSessionTicketResponse_t
 {
 	enum { k_iCallback = k_iSteamUserCallbacks + 63 };
-
 	HAuthTicket m_hAuthTicket;
 	EResult m_eResult;
 };
 
 
+//-----------------------------------------------------------------------------
+// Purpose: sent to your game in response to a steam://gamewebcallback/ command
+//-----------------------------------------------------------------------------
+struct GameWebCallback_t
+{
+	enum { k_iCallback = k_iSteamUserCallbacks + 64 };
+	char m_szURL[256];
+};
+
+//-----------------------------------------------------------------------------
+// Purpose: sent to your game in response to ISteamUser::RequestStoreAuthURL
+//-----------------------------------------------------------------------------
+struct StoreAuthURLResponse_t
+{
+	enum { k_iCallback = k_iSteamUserCallbacks + 65 };
+	char m_szURL[512];
+};
 
 // k_iClientUserCallbacks callbacks
 

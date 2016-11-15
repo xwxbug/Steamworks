@@ -19,7 +19,7 @@
 #ifdef _WIN32
 #pragma once
 #endif
-
+#include "SteamTypes.h"
 
 
 #define STEAMREMOTESTORAGE_INTERFACE_VERSION_001 "STEAMREMOTESTORAGE_INTERFACE_VERSION001"
@@ -35,6 +35,7 @@
 #define STEAMREMOTESTORAGE_INTERFACE_VERSION_011 "STEAMREMOTESTORAGE_INTERFACE_VERSION011"
 #define STEAMREMOTESTORAGE_INTERFACE_VERSION_012 "STEAMREMOTESTORAGE_INTERFACE_VERSION012"
 #define STEAMREMOTESTORAGE_INTERFACE_VERSION_013 "STEAMREMOTESTORAGE_INTERFACE_VERSION013"
+#define STEAMREMOTESTORAGE_INTERFACE_VERSION_014 "STEAMREMOTESTORAGE_INTERFACE_VERSION014"
 #define CLIENTREMOTESTORAGE_INTERFACE_VERSION "CLIENTREMOTESTORAGE_INTERFACE_VERSION001"
 
 
@@ -44,6 +45,10 @@ typedef uint64 PublishedFileUpdateHandle_t;
 typedef uint64 PublishedFileId_t;
 const UGCHandle_t k_UGCHandleInvalid = 0xffffffffffffffffull;
 const PublishedFileUpdateHandle_t k_PublishedFileUpdateHandleInvalid = 0xffffffffffffffffull;
+
+// Handle for writing to Steam Cloud
+typedef uint64 UGCFileWriteStreamHandle_t;
+const UGCFileWriteStreamHandle_t k_UGCFileStreamHandleInvalid = 0xffffffffffffffffull;
 
 const uint32 k_cchPublishedDocumentTitleMax = 128 + 1;
 const uint32 k_cchPublishedDocumentDescriptionMax = 8000;
@@ -105,6 +110,13 @@ enum EUCMFilePrivacyState
 	k_EUCMFilePrivacyStateAll = 14,
 };
 
+// Ways to handle a synchronization conflict
+enum EResolveConflict
+{
+	k_EResolveConflictKeepClient = 1,		// The local version of each file will be used to overwrite the server version
+	k_EResolveConflictKeepServer = 2,		// The server version of each file will be used to overwrite the local version
+};
+
 enum ERemoteStoragePlatform
 {
 	k_ERemoteStoragePlatformNone		= 0,
@@ -115,13 +127,6 @@ enum ERemoteStoragePlatform
 	k_ERemoteStoragePlatformReserved2	= (1 << 4),
 
 	k_ERemoteStoragePlatformAll = 0xffffffff
-};
-
-// Ways to handle a synchronization conflict
-enum EResolveConflict
-{
-	k_EResolveConflictKeepClient = 1,		// The local version of each file will be used to overwrite the server version
-	k_EResolveConflictKeepServer = 2,		// The server version of each file will be used to overwrite the local version
 };
 
 enum ERemoteStoragePublishedFileVisibility
@@ -346,7 +351,6 @@ private:
 struct RemoteStorageAppSyncedClient_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 1 };
-
 	AppId_t m_nAppID;
 	EResult m_eResult;
 	int m_unNumDownloads;
@@ -359,7 +363,6 @@ struct RemoteStorageAppSyncedClient_t
 struct RemoteStorageAppSyncedServer_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 2 };
-
 	AppId_t m_nAppID;
 	EResult m_eResult;
 	int m_unNumUploads;
@@ -372,8 +375,7 @@ struct RemoteStorageAppSyncedServer_t
 struct RemoteStorageAppSyncProgress_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 3 };
-
-	char m_rgchCurrentFile[260];				// Current file being transferred
+	char m_rgchCurrentFile[k_cchFilenameMax];				// Current file being transferred
 	AppId_t m_nAppID;							// App this info relates to
 	uint32 m_uBytesTransferredThisChunk;		// Bytes transferred this chunk
 	double m_dAppPercentComplete;				// Percent complete that this app's transfers are
@@ -395,7 +397,6 @@ struct RemoteStorageAppInfoLoaded_t
 struct RemoteStorageAppSyncStatusCheck_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 5 };
-
 	AppId_t m_nAppID;
 	EResult m_eResult;
 };
@@ -406,7 +407,6 @@ struct RemoteStorageAppSyncStatusCheck_t
 struct RemoteStorageConflictResolution_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 6 };
-
 	AppId_t m_nAppID;
 	EResult m_eResult;
 };
@@ -417,13 +417,14 @@ struct RemoteStorageConflictResolution_t
 struct RemoteStorageFileShareResult_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 7 };
-
 	EResult m_eResult;			// The result of the operation
 	UGCHandle_t m_hFile;		// The handle that can be shared with users and features
+	char m_rgchFilename[k_cchFilenameMax]; // The name of the file that was shared
 };
 
 //-----------------------------------------------------------------------------
 // Purpose: The result of a call to UGCDownload()
+// k_iClientRemoteStorageCallbacks + 8 is deprecated! Do not reuse
 //-----------------------------------------------------------------------------
 struct _Deprecated_RemoteStorageDownloadUGCResult_t
 {
@@ -444,9 +445,9 @@ struct _Deprecated_RemoteStorageDownloadUGCResult_t
 struct RemoteStoragePublishFileResult_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 9 };
-
 	EResult m_eResult;				// The result of the operation.
 	PublishedFileId_t m_nPublishedFileId;
+	bool m_bUserNeedsToAcceptWorkshopLegalAgreement;
 };
 
 //-----------------------------------------------------------------------------
@@ -481,10 +482,10 @@ struct _Deprecated_RemoteStorageGetPublishedFileDetailsResult_t
 struct RemoteStorageDeletePublishedFileResult_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 11 };
-
 	EResult m_eResult;				// The result of the operation.
 	PublishedFileId_t m_nPublishedFileId;
 };
+
 
 //-----------------------------------------------------------------------------
 // Purpose: The result of a call to EnumerateUserPublishedFiles()
@@ -492,12 +493,12 @@ struct RemoteStorageDeletePublishedFileResult_t
 struct RemoteStorageEnumerateUserPublishedFilesResult_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 12 };
-
 	EResult m_eResult;				// The result of the operation.
 	int32 m_nResultsReturned;
 	int32 m_nTotalResultCount;
 	PublishedFileId_t m_rgPublishedFileId[ k_unEnumeratePublishedFilesMaxResults ];
 };
+
 
 //-----------------------------------------------------------------------------
 // Purpose: The result of a call to SubscribePublishedFile()
@@ -505,10 +506,10 @@ struct RemoteStorageEnumerateUserPublishedFilesResult_t
 struct RemoteStorageSubscribePublishedFileResult_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 13 };
-
 	EResult m_eResult;				// The result of the operation.
 	PublishedFileId_t m_nPublishedFileId;
 };
+
 
 //-----------------------------------------------------------------------------
 // Purpose: The result of a call to EnumerateSubscribePublishedFiles()
@@ -516,7 +517,6 @@ struct RemoteStorageSubscribePublishedFileResult_t
 struct RemoteStorageEnumerateUserSubscribedFilesResult_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 14 };
-
 	EResult m_eResult;				// The result of the operation.
 	int32 m_nResultsReturned;
 	int32 m_nTotalResultCount;
@@ -530,21 +530,22 @@ struct RemoteStorageEnumerateUserSubscribedFilesResult_t
 struct RemoteStorageUnsubscribePublishedFileResult_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 15 };
-
 	EResult m_eResult;				// The result of the operation.
 	PublishedFileId_t m_nPublishedFileId;
 };
 
+
 //-----------------------------------------------------------------------------
-// Purpose: The result of a call to UpdatePublishedFile()
+// Purpose: The result of a call to CommitPublishedFileUpdate()
 //-----------------------------------------------------------------------------
 struct RemoteStorageUpdatePublishedFileResult_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 16 };
-
 	EResult m_eResult;				// The result of the operation.
 	PublishedFileId_t m_nPublishedFileId;
+	bool m_bUserNeedsToAcceptWorkshopLegalAgreement;
 };
+
 
 //-----------------------------------------------------------------------------
 // Purpose: The result of a call to UGCDownload()
@@ -552,14 +553,14 @@ struct RemoteStorageUpdatePublishedFileResult_t
 struct RemoteStorageDownloadUGCResult_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 17 };
-
 	EResult m_eResult;				// The result of the operation.
 	UGCHandle_t m_hFile;			// The handle to the file that was attempted to be downloaded.
 	AppId_t m_nAppID;				// ID of the app that created this file.
 	int32 m_nSizeInBytes;			// The size of the file that was downloaded, in bytes.
-	char m_pchFileName[260];		// The name of the file that was downloaded.
+	char m_pchFileName[k_cchFilenameMax];		// The name of the file that was downloaded. 
 	uint64 m_ulSteamIDOwner;		// Steam ID of the user who created this content.
 };
+
 
 //-----------------------------------------------------------------------------
 // Purpose: The result of a call to GetPublishedFileDetails()
@@ -596,7 +597,6 @@ struct RemoteStorageGetPublishedFileDetailsResult_t
 struct RemoteStorageEnumerateWorkshopFilesResult_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 19 };
-
 	EResult m_eResult;
 	int32 m_nResultsReturned;
 	int32 m_nTotalResultCount;
@@ -606,13 +606,13 @@ struct RemoteStorageEnumerateWorkshopFilesResult_t
 	uint32 m_unStartIndex;
 };
 
+
 //-----------------------------------------------------------------------------
 // Purpose: The result of GetPublishedItemVoteDetails
 //-----------------------------------------------------------------------------
 struct RemoteStorageGetPublishedItemVoteDetailsResult_t
 {
 	enum { k_iCallback = k_iClientRemoteStorageCallbacks + 20 };
-
 	EResult m_eResult;
 	PublishedFileId_t m_unPublishedFileId;
 	int32 m_nVotesFor;
